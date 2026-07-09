@@ -148,6 +148,16 @@ export const authService = {
       throw error.response?.data || new Error("Không thể kết nối đến máy chủ.");
     }
   },
+
+  // Nâng cấp tài khoản
+  upgradeAccount: async () => {
+    try {
+      const response = await apiClient.post("/auth/upgrade");
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || new Error("Không thể kết nối đến máy chủ.");
+    }
+  },
 };
 
 /**

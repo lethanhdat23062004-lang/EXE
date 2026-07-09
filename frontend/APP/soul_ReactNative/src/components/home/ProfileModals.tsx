@@ -168,6 +168,12 @@ export function ProfileModals({
               <View style={styles.profileHeaderText}>
                 <Text style={styles.profileHeaderName}>{user?.fullName || "nguyet"}</Text>
                 <Text style={styles.profileHeaderBio}>{user?.bio || "à nhon"}</Text>
+                {user?.isPremium && (
+                  <View style={{ flexDirection: "row", alignItems: "center", marginTop: 6 }}>
+                    <MaterialCommunityIcons name="crown" size={14} color="#F59E0B" />
+                    <Text style={{ color: "#F59E0B", fontSize: 12, fontWeight: "700", marginLeft: 4 }}>SOUL PRO</Text>
+                  </View>
+                )}
               </View>
             </View>
 
@@ -236,6 +242,26 @@ export function ProfileModals({
                       ? new Date(user.dateOfBirth).toLocaleDateString("vi-VN")
                       : "Chưa cung cấp"}
                   </Text>
+                </View>
+              </View>
+
+              <View style={styles.detailDivider} />
+
+              {/* Gói tài khoản */}
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons name="crown-outline" size={22} color="#006B5C" style={styles.detailIcon} />
+                <View style={styles.detailTextGroup}>
+                  <Text style={styles.detailLabel}>Gói tài khoản</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    {user?.isPremium ? (
+                      <>
+                        <MaterialCommunityIcons name="crown" size={16} color="#F59E0B" />
+                        <Text style={[styles.detailValue, { color: "#F59E0B", fontWeight: "700" }]}>SOUL PRO</Text>
+                      </>
+                    ) : (
+                      <Text style={styles.detailValue}>Miễn phí</Text>
+                    )}
+                  </View>
                 </View>
               </View>
 

@@ -1,5 +1,6 @@
 const ChatSession = require("../models/ChatSession");
 const ChatMessage = require("../models/ChatMessage");
+const User = require("../models/User");
 const { askSoulAI } = require("../services/aiService");
 
 const getUserId = (req) => {
@@ -116,6 +117,17 @@ const sendMessageToSession = async (req, res) => {
     }
 
     const cleanMessage = message.trim();
+
+    const user = await User.findById(userId);
+    if (!user.isPremium && user.chatCount >= 5) {
+      return res.status(403).json({
+        success: false,
+        message: "UPGRADE_REQUIRED",
+      });
+    }
+
+    user.chatCount += 1;
+    await user.save();
 
     const userMessage = await ChatMessage.create({
       sessionId,

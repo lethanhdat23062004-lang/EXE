@@ -14,6 +14,7 @@ const {
   googleCallback,
   updateProfile,
   changePassword,
+  upgradeAccount,
 } = require("../controllers/authController");
 const auth = require("../middleware/auth");
 
@@ -48,6 +49,9 @@ router.put("/profile", auth, updateProfile);
 
 // Đổi mật khẩu (Private)
 router.put("/change-password", auth, changePassword);
+
+// Nâng cấp tài khoản (Private)
+router.post("/upgrade", auth, upgradeAccount);
 
 // Route kiểm tra phân quyền Admin (Private & Admin only)
 router.get("/admin-only", auth, auth.isAdmin, (req, res) => {

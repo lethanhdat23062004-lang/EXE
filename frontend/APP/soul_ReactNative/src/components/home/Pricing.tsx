@@ -1,7 +1,14 @@
-import { Text, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import { Text, TouchableOpacity, View, Alert } from "react-native";
 import { styles } from "@/styles/home.styles";
+import UpgradeModal from "@/components/upgrade/UpgradeModal";
+import { useAuthStore } from "@/store";
 
 export function Pricing() {
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const user = useAuthStore((state) => state.user);
+  const isPremium = user?.isPremium ?? false;
+
   return (
     <View>
       <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Bắt đầu với các tính năng đang có</Text>
@@ -15,7 +22,7 @@ export function Pricing() {
           <Text style={styles.priceAmount}>0đ</Text>
           <Text style={styles.priceSub}>trong phạm vi dự án</Text>
           <TouchableOpacity style={styles.priceBtn}>
-            <Text style={styles.priceBtnText}>Bắt đầu miễn phí</Text>
+            <Text style={styles.priceBtnText}>{isPremium ? "Đã dùng" : "Bắt đầu miễn phí"}</Text>
           </TouchableOpacity>
         </View>
 
@@ -23,11 +30,17 @@ export function Pricing() {
           <View style={styles.priceBadge}>
             <Text style={styles.priceBadgeText}>MODULE HIỆN CÓ</Text>
           </View>
-          <Text style={styles.priceTitlePro}>Wellness toolkit</Text>
-          <Text style={styles.priceAmountPro}>5</Text>
-          <Text style={styles.priceSub}>nhóm tính năng chính</Text>
-          <TouchableOpacity style={styles.priceBtnPro}>
-            <Text style={styles.priceBtnTextPro}>Khám phá SOUL</Text>
+          <Text style={styles.priceTitlePro}>SOUL PRO</Text>
+          <Text style={styles.priceAmountPro}>149K</Text>
+          <Text style={styles.priceSub}>/tháng</Text>
+          <TouchableOpacity
+            style={[styles.priceBtnPro, isPremium && { opacity: 0.7 }]}
+            onPress={() => !isPremium && setShowUpgrade(true)}
+            disabled={isPremium}
+          >
+            <Text style={styles.priceBtnTextPro}>
+              {isPremium ? "✓ Đang sử dụng" : "Nâng cấp ngay"}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -37,6 +50,15 @@ export function Pricing() {
           Phiên bản hiện tại chưa triển khai gói trả phí
         </Text>
       </TouchableOpacity>
+
+      <UpgradeModal
+        visible={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        onSuccess={() => {
+          setShowUpgrade(false);
+          Alert.alert("🎉 Thành công", "Bạn đã nâng cấp lên SOUL PRO thành công!");
+        }}
+      />
     </View>
   );
 }

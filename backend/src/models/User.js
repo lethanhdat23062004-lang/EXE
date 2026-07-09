@@ -165,6 +165,16 @@ const userSchema = new mongoose.Schema(
       sparse: true,
       trim: true,
     },
+
+    isPremium: {
+      type: Boolean,
+      default: false,
+    },
+
+    chatCount: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );

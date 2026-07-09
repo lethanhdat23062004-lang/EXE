@@ -14,6 +14,7 @@ interface User {
   dateOfBirth?: string;
   avatarUrl?: string;
   bio?: string;
+  isPremium?: boolean;
 }
 
 // Định nghĩa giao diện trạng thái quản lý của Zustand Store
@@ -56,8 +57,8 @@ interface AuthState {
     newPassword?: string;
   }) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void> | void;
+  upgradeAccount: () => Promise<{ success: boolean; message: string }>;
 
-  
   // Các hành động Khôi phục mật khẩu (Forgot Password)
   setForgotEmail: (email: string) => void;
   setForgotCode: (code: string) => void;
@@ -196,16 +197,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.warn("Lỗi xóa token khỏi AsyncStorage khi logout:", e);
     }
     setAuthToken(null);
-
-    set({
-      user: null,
-      token: null,
-      isLoggedIn: false,
-      forgotEmail: null,
-      forgotCode: null,
-    });
+    set({ user: null, token: null, isLoggedIn: false });
   },
 
+  upgradeAccount: async () => {
+    try {
+      const response = await authService.upgradeAccount();
+      if (response.success && response.data) {
+        set({ user: response.data });
+        return { success: true, message: response.message };
+      }
+      return { success: false, message: response.message || "Lỗi nâng cấp." };
+    } catch (error: any) {
+      return { success: false, message: error.message || "Lỗi nâng cấp." };
+    }
+  },
 
   // Lưu email trong tiến trình quên mật khẩu
   setForgotEmail: (email) => set({ forgotEmail: email }),

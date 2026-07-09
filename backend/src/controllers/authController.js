@@ -721,6 +721,29 @@ const changePassword = async (req, res) => {
   }
 };
 
+const upgradeAccount = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    user.isPremium = true;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Nâng cấp tài khoản thành công",
+      data: user,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi nâng cấp tài khoản: " + error.message,
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -734,6 +757,7 @@ module.exports = {
   googleCallback,
   updateProfile,
   changePassword,
+  upgradeAccount,
 };
 
 

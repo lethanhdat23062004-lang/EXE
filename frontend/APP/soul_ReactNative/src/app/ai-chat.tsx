@@ -11,6 +11,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
+import UpgradeModal from "@/components/upgrade/UpgradeModal";
 import {
   ActivityIndicator,
   Alert,
@@ -58,6 +59,7 @@ export default function AIChatScreen() {
   const [loading, setLoading] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const finalChatCardWidth = isWebWide
     ? Math.min(width - (historyOpen ? 520 : 180), 1180)
@@ -206,15 +208,21 @@ export default function AIChatScreen() {
         const filtered = prev.filter((item) => item._id !== result.session._id);
         return [result.session, ...filtered];
       });
-    } catch (error) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString() + "-error",
-          role: "ai",
-          text: "Mình chưa kết nối được với AI server. Bạn kiểm tra lại backend, token đăng nhập hoặc API URL nhé.",
-        },
-      ]);
+    } catch (error: any) {
+      if (error.message === "UPGRADE_REQUIRED") {
+        // Hoàn tác tin nhắn của user vì không gửi được
+        setMessages((prev) => prev.slice(0, -1));
+        setShowUpgradeModal(true);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now().toString() + "-error",
+            role: "ai",
+            text: "Mình chưa kết nối được với AI server. Bạn kiểm tra lại backend, token đăng nhập hoặc API URL nhé.",
+          },
+        ]);
+      }
     } finally {
       setLoading(false);
     }
@@ -460,6 +468,14 @@ export default function AIChatScreen() {
           </View>
         </KeyboardAvoidingView>
       </View>
+      <UpgradeModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onSuccess={() => {
+          setShowUpgradeModal(false);
+          Alert.alert("Thành công", "Bạn đã nâng cấp Premium! Hãy tiếp tục cuộc trò chuyện.");
+        }}
+      />
     </LinearGradient>
   );
 }
