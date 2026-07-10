@@ -125,168 +125,163 @@ export default function LoginScreen() {
     }
   };
 
-  // ── Brand Panel (left on web, top on mobile) ────────────────────────────
-  const BrandPanel = () => (
-    <LinearGradient
-      colors={["#7C3AED", "#6D28D9", "#5B21B6"]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[s.brandPanel, isWeb ? s.brandPanelWeb : s.brandPanelMobile]}
-    >
-      {/* Decorative circles */}
-      <View style={[s.blob, { top: -60, right: -60, width: 220, height: 220, borderRadius: 110 }]} />
-      <View style={[s.blob, { bottom: -40, left: -40, width: 180, height: 180, borderRadius: 90 }]} />
-      <View style={[s.blob, { top: "40%", right: -30, width: 120, height: 120, borderRadius: 60, opacity: 0.15 }]} />
-
-      <View style={s.brandContent}>
-        {/* Logo */}
-        <View style={s.logoRow}>
-          <MaterialCommunityIcons name="leaf" size={20} color="rgba(255,255,255,0.9)" />
-          <Text style={s.logoText}>SOUL</Text>
-        </View>
-
-        {/* Headline */}
-        <Text style={[s.headline, isWeb ? s.headlineWeb : s.headlineMobile]}>
-          Nurture your{"\n"}inner peace.
-        </Text>
-
-        <Text style={s.subHeadline}>
-          Join over 2 million users finding balance and mental clarity through science-backed wellness practices.
-        </Text>
-
-        {/* Stats */}
-        <View style={s.statsRow}>
-          <StatCard value="98%" label="STRESS REDUCTION" />
-          <StatCard value="2M+" label="HAPPY SOULS" />
-        </View>
-      </View>
-    </LinearGradient>
-  );
-
-  // ── Form Panel (right on web, bottom on mobile) ─────────────────────────
-  const FormPanel = () => (
-    <View style={[s.formPanel, isWeb ? s.formPanelWeb : s.formPanelMobile]}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={s.formScroll}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={s.formTitle}>Welcome Back</Text>
-        <Text style={s.formSubtitle}>Sign in to continue your wellness journey.</Text>
-
-        {/* Server Error */}
-        {serverError ? (
-          <View style={s.errorBox}>
-            <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#DC2626" />
-            <Text style={s.errorBoxText}>{serverError}</Text>
-          </View>
-        ) : null}
-
-        {/* Email */}
-        <Text style={s.fieldLabel}>Email Address</Text>
-        <View style={[s.inputWrap, emailError ? s.inputWrapError : null]}>
-          <MaterialCommunityIcons name="email-outline" size={20} color={emailError ? colors.error : "#94A3B8"} style={s.inputIcon} />
-          <TextInput
-            placeholder="name@example.com"
-            placeholderTextColor="#B0BEC5"
-            style={s.input}
-            value={email}
-            onChangeText={handleEmailChange}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-        </View>
-        {emailError ? <Text style={s.fieldError}>{emailError}</Text> : null}
-
-        {/* Password row header */}
-        <View style={s.passwordHeader}>
-          <Text style={s.fieldLabel}>Password</Text>
-          <TouchableOpacity onPress={() => router.push("/(auth)/forgot")}>
-            <Text style={s.forgotLink}>Forgot password?</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={[s.inputWrap, passwordError ? s.inputWrapError : null]}>
-          <MaterialCommunityIcons name="lock-outline" size={20} color={passwordError ? colors.error : "#94A3B8"} style={s.inputIcon} />
-          <TextInput
-            placeholder="••••••••"
-            placeholderTextColor="#B0BEC5"
-            secureTextEntry={secureText}
-            style={s.input}
-            value={password}
-            onChangeText={handlePasswordChange}
-            autoCapitalize="none"
-          />
-          <TouchableOpacity onPress={() => setSecureText(!secureText)} style={s.eyeBtn}>
-            <MaterialCommunityIcons
-              name={secureText ? "eye-off-outline" : "eye-outline"}
-              size={20}
-              color="#94A3B8"
-            />
-          </TouchableOpacity>
-        </View>
-        {passwordError ? <Text style={s.fieldError}>{passwordError}</Text> : null}
-
-        {/* Remember me */}
-        <TouchableOpacity style={s.checkRow} onPress={() => setRememberMe(!rememberMe)} activeOpacity={0.7}>
-          <View style={[s.checkbox, rememberMe && s.checkboxChecked]}>
-            {rememberMe && <MaterialCommunityIcons name="check" size={13} color="#FFF" />}
-          </View>
-          <Text style={s.checkLabel}>Remember this device</Text>
-        </TouchableOpacity>
-
-        {/* Sign In button */}
-        <TouchableOpacity onPress={handleLogin} disabled={loading} style={s.signInBtn} activeOpacity={0.85}>
-          <LinearGradient
-            colors={["#7C3AED", "#6D28D9"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={s.signInGradient}
-          >
-            {loading
-              ? <ActivityIndicator color="#FFF" size="small" />
-              : <Text style={s.signInText}>Sign In</Text>
-            }
-          </LinearGradient>
-        </TouchableOpacity>
-
-        {/* Divider */}
-        <View style={s.dividerRow}>
-          <View style={s.dividerLine} />
-          <Text style={s.dividerText}>OR CONTINUE WITH</Text>
-          <View style={s.dividerLine} />
-        </View>
-
-        {/* Social buttons */}
-        <View style={s.socialRow}>
-          <TouchableOpacity style={s.socialBtn} onPress={handleGoogleLogin} activeOpacity={0.8}>
-            <MaterialCommunityIcons name="google" size={20} color="#EA4335" />
-            <Text style={s.socialBtnText}>Google</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={s.socialBtn} activeOpacity={0.8}>
-            <MaterialCommunityIcons name="facebook" size={20} color="#1877F2" />
-            <Text style={s.socialBtnText}>Facebook</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Register link */}
-        <View style={s.bottomLink}>
-          <Text style={s.bottomLinkText}>New to SOUL? </Text>
-          <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
-            <Text style={s.bottomLinkAction}>Create an account</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </View>
-  );
-
+  // ── Return ───────────────────────────────────────────────────────────────
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={s.root}
     >
       <View style={[s.container, isWeb && s.containerWeb]}>
-        <BrandPanel />
-        <FormPanel />
+        
+        {/* ── Brand Panel (left on web, top on mobile) ─────────────────── */}
+        <LinearGradient
+          colors={["#7C3AED", "#6D28D9", "#5B21B6"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[s.brandPanel, isWeb ? s.brandPanelWeb : s.brandPanelMobile]}
+        >
+          {/* Decorative circles */}
+          <View style={[s.blob, { top: -60, right: -60, width: 220, height: 220, borderRadius: 110 }]} />
+          <View style={[s.blob, { bottom: -40, left: -40, width: 180, height: 180, borderRadius: 90 }]} />
+          <View style={[s.blob, { top: "40%", right: -30, width: 120, height: 120, borderRadius: 60, opacity: 0.15 }]} />
+
+          <View style={s.brandContent}>
+            {/* Logo */}
+            <View style={s.logoRow}>
+              <MaterialCommunityIcons name="leaf" size={20} color="rgba(255,255,255,0.9)" />
+              <Text style={s.logoText}>SOUL</Text>
+            </View>
+
+            {/* Headline */}
+            <Text style={[s.headline, isWeb ? s.headlineWeb : s.headlineMobile]}>
+              Nurture your{"\n"}inner peace.
+            </Text>
+
+            <Text style={s.subHeadline}>
+              Join over 2 million users finding balance and mental clarity through science-backed wellness practices.
+            </Text>
+
+            {/* Stats */}
+            <View style={s.statsRow}>
+              <StatCard value="98%" label="STRESS REDUCTION" />
+              <StatCard value="2M+" label="HAPPY SOULS" />
+            </View>
+          </View>
+        </LinearGradient>
+
+        {/* ── Form Panel (right on web, bottom on mobile) ─────────────────── */}
+        <View style={[s.formPanel, isWeb ? s.formPanelWeb : s.formPanelMobile]}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={s.formScroll}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={s.formTitle}>Welcome Back</Text>
+            <Text style={s.formSubtitle}>Sign in to continue your wellness journey.</Text>
+
+            {/* Server Error */}
+            {serverError ? (
+              <View style={s.errorBox}>
+                <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#DC2626" />
+                <Text style={s.errorBoxText}>{serverError}</Text>
+              </View>
+            ) : null}
+
+            {/* Email */}
+            <Text style={s.fieldLabel}>Email Address</Text>
+            <View style={[s.inputWrap, emailError ? s.inputWrapError : null]}>
+              <MaterialCommunityIcons name="email-outline" size={20} color={emailError ? colors.error : "#94A3B8"} style={s.inputIcon} />
+              <TextInput
+                placeholder="name@example.com"
+                placeholderTextColor="#B0BEC5"
+                style={s.input}
+                value={email}
+                onChangeText={handleEmailChange}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+            {emailError ? <Text style={s.fieldError}>{emailError}</Text> : null}
+
+            {/* Password row header */}
+            <View style={s.passwordHeader}>
+              <Text style={s.fieldLabel}>Password</Text>
+              <TouchableOpacity onPress={() => router.push("/(auth)/forgot")}>
+                <Text style={s.forgotLink}>Forgot password?</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={[s.inputWrap, passwordError ? s.inputWrapError : null]}>
+              <MaterialCommunityIcons name="lock-outline" size={20} color={passwordError ? colors.error : "#94A3B8"} style={s.inputIcon} />
+              <TextInput
+                placeholder="••••••••"
+                placeholderTextColor="#B0BEC5"
+                secureTextEntry={secureText}
+                style={s.input}
+                value={password}
+                onChangeText={handlePasswordChange}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity onPress={() => setSecureText(!secureText)} style={s.eyeBtn}>
+                <MaterialCommunityIcons
+                  name={secureText ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color="#94A3B8"
+                />
+              </TouchableOpacity>
+            </View>
+            {passwordError ? <Text style={s.fieldError}>{passwordError}</Text> : null}
+
+            {/* Remember me */}
+            <TouchableOpacity style={s.checkRow} onPress={() => setRememberMe(!rememberMe)} activeOpacity={0.7}>
+              <View style={[s.checkbox, rememberMe && s.checkboxChecked]}>
+                {rememberMe && <MaterialCommunityIcons name="check" size={13} color="#FFF" />}
+              </View>
+              <Text style={s.checkLabel}>Remember this device</Text>
+            </TouchableOpacity>
+
+            {/* Sign In button */}
+            <TouchableOpacity onPress={handleLogin} disabled={loading} style={s.signInBtn} activeOpacity={0.85}>
+              <LinearGradient
+                colors={["#7C3AED", "#6D28D9"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={s.signInGradient}
+              >
+                {loading
+                  ? <ActivityIndicator color="#FFF" size="small" />
+                  : <Text style={s.signInText}>Sign In</Text>
+                }
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Divider */}
+            <View style={s.dividerRow}>
+              <View style={s.dividerLine} />
+              <Text style={s.dividerText}>OR CONTINUE WITH</Text>
+              <View style={s.dividerLine} />
+            </View>
+
+            {/* Social buttons */}
+            <View style={s.socialRow}>
+              <TouchableOpacity style={s.socialBtn} onPress={handleGoogleLogin} activeOpacity={0.8}>
+                <MaterialCommunityIcons name="google" size={20} color="#EA4335" />
+                <Text style={s.socialBtnText}>Google</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.socialBtn} activeOpacity={0.8}>
+                <MaterialCommunityIcons name="facebook" size={20} color="#1877F2" />
+                <Text style={s.socialBtnText}>Facebook</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Register link */}
+            <View style={s.bottomLink}>
+              <Text style={s.bottomLinkText}>New to SOUL? </Text>
+              <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
+                <Text style={s.bottomLinkAction}>Create an account</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
       </View>
 
       {/* Google WebView Modal */}

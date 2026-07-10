@@ -150,191 +150,178 @@ export default function RegisterScreen() {
     }
   };
 
-  // ── Form Panel (left on web, top on mobile) ──────────────────────────────
-  const FormPanel = () => (
-    <View style={[r.formPanel, isWeb ? r.formPanelWeb : r.formPanelMobile]}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={r.formScroll}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Logo */}
-        <Text style={r.logoText}>SOUL</Text>
-        <Text style={r.formTitle}>Begin your journey</Text>
-        <Text style={r.formSubtitle}>Create your personalized wellness sanctuary.</Text>
-
-        {/* Server Error */}
-        {serverError ? (
-          <View style={r.errorBox}>
-            <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#DC2626" />
-            <Text style={r.errorBoxText}>{serverError}</Text>
-          </View>
-        ) : null}
-
-        {/* Full Name */}
-        <Text style={r.fieldLabel}>Full Name</Text>
-        <View style={[r.inputWrap, nameError ? r.inputWrapError : null]}>
-          <MaterialCommunityIcons name="account-outline" size={20} color={nameError ? colors.error : "#94A3B8"} style={r.inputIcon} />
-          <TextInput
-            placeholder="Julian Rivers"
-            placeholderTextColor="#B0BEC5"
-            style={r.input}
-            value={fullName}
-            onChangeText={handleNameChange}
-            autoCapitalize="words"
-          />
-        </View>
-        {nameError ? <Text style={r.fieldError}>{nameError}</Text> : null}
-
-        {/* Email */}
-        <Text style={r.fieldLabel}>Email Address</Text>
-        <View style={[r.inputWrap, emailError ? r.inputWrapError : null]}>
-          <MaterialCommunityIcons name="email-outline" size={20} color={emailError ? colors.error : "#94A3B8"} style={r.inputIcon} />
-          <TextInput
-            placeholder="julian@wellness.com"
-            placeholderTextColor="#B0BEC5"
-            style={r.input}
-            value={email}
-            onChangeText={handleEmailChange}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-        </View>
-        {emailError ? <Text style={r.fieldError}>{emailError}</Text> : null}
-
-        {/* Password + Confirm row */}
-        <View style={[r.twoColRow, !isWeb && r.twoColRowMobile]}>
-          {/* Password */}
-          <View style={r.halfCol}>
-            <Text style={r.fieldLabel}>Password</Text>
-            <View style={[r.inputWrap, passwordError ? r.inputWrapError : null]}>
-              <MaterialCommunityIcons name="lock-outline" size={20} color={passwordError ? colors.error : "#94A3B8"} style={r.inputIcon} />
-              <TextInput
-                placeholder="••••••••"
-                placeholderTextColor="#B0BEC5"
-                secureTextEntry={secureText}
-                style={r.input}
-                value={password}
-                onChangeText={handlePasswordChange}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity onPress={() => setSecureText(!secureText)}>
-                <MaterialCommunityIcons name={secureText ? "eye-off-outline" : "eye-outline"} size={18} color="#94A3B8" />
-              </TouchableOpacity>
-            </View>
-            {passwordError ? <Text style={r.fieldError}>{passwordError}</Text> : null}
-          </View>
-
-          {/* Confirm */}
-          <View style={r.halfCol}>
-            <Text style={r.fieldLabel}>Confirm</Text>
-            <View style={[r.inputWrap, confirmError ? r.inputWrapError : null]}>
-              <MaterialCommunityIcons name="shield-check-outline" size={20} color={confirmError ? colors.error : "#94A3B8"} style={r.inputIcon} />
-              <TextInput
-                placeholder="••••••••"
-                placeholderTextColor="#B0BEC5"
-                secureTextEntry={secureConfirm}
-                style={r.input}
-                value={confirmPassword}
-                onChangeText={handleConfirmChange}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity onPress={() => setSecureConfirm(!secureConfirm)}>
-                <MaterialCommunityIcons name={secureConfirm ? "eye-off-outline" : "eye-outline"} size={18} color="#94A3B8" />
-              </TouchableOpacity>
-            </View>
-            {confirmError ? <Text style={r.fieldError}>{confirmError}</Text> : null}
-          </View>
-        </View>
-
-        {/* Terms */}
-        <TouchableOpacity style={r.checkRow} onPress={() => { setAgreed(!agreed); setAgreeError(""); }} activeOpacity={0.7}>
-          <View style={[r.checkbox, agreed && r.checkboxChecked]}>
-            {agreed && <MaterialCommunityIcons name="check" size={13} color="#FFF" />}
-          </View>
-          <Text style={r.checkLabel}>
-            I agree to the{" "}
-            <Text style={r.termsLink}>Terms of Service</Text>
-            {" "}and{" "}
-            <Text style={r.termsLink}>Privacy Policy</Text>
-          </Text>
-        </TouchableOpacity>
-        {agreeError ? <Text style={r.fieldError}>{agreeError}</Text> : null}
-
-        {/* Create Account button */}
-        <TouchableOpacity onPress={handleRegister} disabled={loading} style={r.createBtn} activeOpacity={0.85}>
-          <LinearGradient
-            colors={["#7C3AED", "#6D28D9"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={r.createGradient}
-          >
-            {loading
-              ? <ActivityIndicator color="#FFF" size="small" />
-              : <Text style={r.createBtnText}>Create Account</Text>
-            }
-          </LinearGradient>
-        </TouchableOpacity>
-
-        {/* Sign in link */}
-        <View style={r.bottomLink}>
-          <Text style={r.bottomLinkText}>Already have an account? </Text>
-          <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
-            <Text style={r.bottomLinkAction}>Sign In</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </View>
-  );
-
-  // ── Brand Panel (right on web, bottom on mobile) ─────────────────────────
-  const BrandPanel = () => (
-    <View style={[r.brandPanel, isWeb ? r.brandPanelWeb : r.brandPanelMobile]}>
-      {/* Decorative background */}
-      <LinearGradient
-        colors={["#F5F3FF", "#EDE9FE"]}
-        style={StyleSheet.absoluteFill}
-      />
-      {/* Decorative blobs */}
-      <View style={[r.blob, { top: -50, right: -50, width: 200, height: 200, borderRadius: 100 }]} />
-      <View style={[r.blob, { bottom: -30, left: -30, width: 150, height: 150, borderRadius: 75, opacity: 0.6 }]} />
-
-      <View style={r.brandContent}>
-        {/* Lotus Icon */}
-        <View style={r.lotusWrap}>
-          <MaterialCommunityIcons name="leaf" size={32} color={colors.primary} />
-        </View>
-
-        {/* Quote card */}
-        <View style={r.quoteCard}>
-          <Text style={r.quoteText}>
-            {'"Wellness is not a luxury, it\'s a foundation."'}
-          </Text>
-
-          <View style={r.featureList}>
-            <FeatureItem icon="creation-outline" text="AI-guided meditation tailored to your mood." />
-            <FeatureItem icon="chart-line" text="Scientific tracking of your emotional baseline." />
-            <FeatureItem icon="account-group-outline" text="Global community of mindfulness advocates." />
-          </View>
-        </View>
-
-        {/* Security badge */}
-        <View style={r.securityBadge}>
-          <MaterialCommunityIcons name="shield-check-outline" size={14} color={colors.primary} />
-          <Text style={r.securityText}>SECURE WELLNESS ECOSYSTEM</Text>
-        </View>
-      </View>
-    </View>
-  );
-
+  // ── Return ───────────────────────────────────────────────────────────────
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={r.root}
     >
       <View style={[r.container, isWeb && r.containerWeb]}>
-        <FormPanel />
-        <BrandPanel />
+
+        {/* ── Form Panel (left on web, top on mobile) ─────────────────── */}
+        <View style={[r.formPanel, isWeb ? r.formPanelWeb : r.formPanelMobile]}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={r.formScroll}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Logo */}
+            <Text style={r.logoText}>SOUL</Text>
+            <Text style={r.formTitle}>Begin your journey</Text>
+            <Text style={r.formSubtitle}>Create your personalized wellness sanctuary.</Text>
+
+            {/* Server Error */}
+            {serverError ? (
+              <View style={r.errorBox}>
+                <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#DC2626" />
+                <Text style={r.errorBoxText}>{serverError}</Text>
+              </View>
+            ) : null}
+
+            {/* Full Name */}
+            <Text style={r.fieldLabel}>Full Name</Text>
+            <View style={[r.inputWrap, nameError ? r.inputWrapError : null]}>
+              <MaterialCommunityIcons name="account-outline" size={20} color={nameError ? colors.error : "#94A3B8"} style={r.inputIcon} />
+              <TextInput
+                placeholder="Julian Rivers"
+                placeholderTextColor="#B0BEC5"
+                style={r.input}
+                value={fullName}
+                onChangeText={handleNameChange}
+                autoCapitalize="words"
+              />
+            </View>
+            {nameError ? <Text style={r.fieldError}>{nameError}</Text> : null}
+
+            {/* Email */}
+            <Text style={r.fieldLabel}>Email Address</Text>
+            <View style={[r.inputWrap, emailError ? r.inputWrapError : null]}>
+              <MaterialCommunityIcons name="email-outline" size={20} color={emailError ? colors.error : "#94A3B8"} style={r.inputIcon} />
+              <TextInput
+                placeholder="julian@wellness.com"
+                placeholderTextColor="#B0BEC5"
+                style={r.input}
+                value={email}
+                onChangeText={handleEmailChange}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+            {emailError ? <Text style={r.fieldError}>{emailError}</Text> : null}
+
+            {/* Password + Confirm row */}
+            <View style={[r.twoColRow, !isWeb && r.twoColRowMobile]}>
+              {/* Password */}
+              <View style={r.halfCol}>
+                <Text style={r.fieldLabel}>Password</Text>
+                <View style={[r.inputWrap, passwordError ? r.inputWrapError : null]}>
+                  <MaterialCommunityIcons name="lock-outline" size={20} color={passwordError ? colors.error : "#94A3B8"} style={r.inputIcon} />
+                  <TextInput
+                    placeholder="••••••••"
+                    placeholderTextColor="#B0BEC5"
+                    secureTextEntry={secureText}
+                    style={r.input}
+                    value={password}
+                    onChangeText={handlePasswordChange}
+                    autoCapitalize="none"
+                  />
+                  <TouchableOpacity onPress={() => setSecureText(!secureText)}>
+                    <MaterialCommunityIcons name={secureText ? "eye-off-outline" : "eye-outline"} size={18} color="#94A3B8" />
+                  </TouchableOpacity>
+                </View>
+                {passwordError ? <Text style={r.fieldError}>{passwordError}</Text> : null}
+              </View>
+
+              {/* Confirm */}
+              <View style={r.halfCol}>
+                <Text style={r.fieldLabel}>Confirm</Text>
+                <View style={[r.inputWrap, confirmError ? r.inputWrapError : null]}>
+                  <MaterialCommunityIcons name="shield-check-outline" size={20} color={confirmError ? colors.error : "#94A3B8"} style={r.inputIcon} />
+                  <TextInput
+                    placeholder="••••••••"
+                    placeholderTextColor="#B0BEC5"
+                    secureTextEntry={secureConfirm}
+                    style={r.input}
+                    value={confirmPassword}
+                    onChangeText={handleConfirmChange}
+                    autoCapitalize="none"
+                  />
+                  <TouchableOpacity onPress={() => setSecureConfirm(!secureConfirm)}>
+                    <MaterialCommunityIcons name={secureConfirm ? "eye-off-outline" : "eye-outline"} size={18} color="#94A3B8" />
+                  </TouchableOpacity>
+                </View>
+                {confirmError ? <Text style={r.fieldError}>{confirmError}</Text> : null}
+              </View>
+            </View>
+
+            {/* Terms */}
+            <TouchableOpacity style={r.checkRow} onPress={() => { setAgreed(!agreed); setAgreeError(""); }} activeOpacity={0.7}>
+              <View style={[r.checkbox, agreed && r.checkboxChecked]}>
+                {agreed && <MaterialCommunityIcons name="check" size={13} color="#FFF" />}
+              </View>
+              <Text style={r.checkLabel}>
+                I agree to the{" "}
+                <Text style={r.termsLink}>Terms of Service</Text>
+                {" "}and{" "}
+                <Text style={r.termsLink}>Privacy Policy</Text>
+              </Text>
+            </TouchableOpacity>
+            {agreeError ? <Text style={r.fieldError}>{agreeError}</Text> : null}
+
+            {/* Create Account button */}
+            <TouchableOpacity onPress={handleRegister} disabled={loading} style={r.createBtn} activeOpacity={0.85}>
+              <LinearGradient
+                colors={["#7C3AED", "#6D28D9"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={r.createGradient}
+              >
+                {loading
+                  ? <ActivityIndicator color="#FFF" size="small" />
+                  : <Text style={r.createBtnText}>Create Account</Text>
+                }
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Sign in link */}
+            <View style={r.bottomLink}>
+              <Text style={r.bottomLinkText}>Already have an account? </Text>
+              <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
+                <Text style={r.bottomLinkAction}>Sign In</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+
+        {/* ── Brand Panel (right on web, bottom on mobile) ─────────────── */}
+        <View style={[r.brandPanel, isWeb ? r.brandPanelWeb : r.brandPanelMobile]}>
+          <LinearGradient colors={["#F5F3FF", "#EDE9FE"]} style={StyleSheet.absoluteFill} />
+          <View style={[r.blob, { top: -50, right: -50, width: 200, height: 200, borderRadius: 100 }]} />
+          <View style={[r.blob, { bottom: -30, left: -30, width: 150, height: 150, borderRadius: 75, opacity: 0.6 }]} />
+
+          <View style={r.brandContent}>
+            <View style={r.lotusWrap}>
+              <MaterialCommunityIcons name="leaf" size={32} color={colors.primary} />
+            </View>
+
+            <View style={r.quoteCard}>
+              <Text style={r.quoteText}>
+                {'"Wellness is not a luxury, it\'s a foundation."'}
+              </Text>
+              <View style={r.featureList}>
+                <FeatureItem icon="creation-outline" text="AI-guided meditation tailored to your mood." />
+                <FeatureItem icon="chart-line" text="Scientific tracking of your emotional baseline." />
+                <FeatureItem icon="account-group-outline" text="Global community of mindfulness advocates." />
+              </View>
+            </View>
+
+            <View style={r.securityBadge}>
+              <MaterialCommunityIcons name="shield-check-outline" size={14} color={colors.primary} />
+              <Text style={r.securityText}>SECURE WELLNESS ECOSYSTEM</Text>
+            </View>
+          </View>
+        </View>
+
       </View>
 
       {/* Google WebView Modal */}

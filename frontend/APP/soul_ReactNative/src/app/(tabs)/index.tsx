@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Platform,
   SafeAreaView,
@@ -108,16 +108,25 @@ export default function HomeScreen() {
   const [chatOpen, setChatOpen] = useState(false);
   const { user } = useAuthStore();
   const firstName = user?.fullName?.split(" ")?.slice(-1)?.[0] || "bạn";
+  const scrollRef = useRef<ScrollView>(null);
+  const ratingOffsetRef = useRef<number>(0);
+
+  const handleRatingPress = () => {
+    // Scroll to rating section then open modal
+    scrollRef.current?.scrollTo({ y: ratingOffsetRef.current, animated: true });
+    setTimeout(() => setShowRating(true), 400);
+  };
 
   if (isWeb) {
     return (
       <View style={webStyles.root}>
         <ScrollView
+          ref={scrollRef}
           style={webStyles.contentArea}
           contentContainerStyle={webLanding.content}
           showsVerticalScrollIndicator={false}
         >
-          <HomeHeader showSidebar={false} onToggleSidebar={() => {}} webMode />
+          <HomeHeader showSidebar={false} onToggleSidebar={() => {}} webMode onRatingPress={handleRatingPress} />
 
           <View style={webLanding.page}>
             <LoggedInHero firstName={firstName} onStartChat={() => setChatOpen(true)} />
@@ -125,7 +134,11 @@ export default function HomeScreen() {
             <AiCompanionSection onStartChat={() => setChatOpen(true)} />
             <DiaryMoodSection />
             <AssessmentSection />
-            <EventsAndRatingSection onOpenRating={() => setShowRating(true)} />
+            <View
+              onLayout={(e) => { ratingOffsetRef.current = e.nativeEvent.layout.y + 800; }}
+            >
+              <EventsAndRatingSection onOpenRating={() => { setShowRating(true); }} />
+            </View>
             <CommunitySection />
             <FinalCta onStartChat={() => setChatOpen(true)} />
           </View>
@@ -151,6 +164,7 @@ export default function HomeScreen() {
       <HomeHeader
         showSidebar={showSidebar}
         onToggleSidebar={() => setShowSidebar(!showSidebar)}
+        onRatingPress={() => setShowRating(true)}
       />
 
       <ScrollView style={styles.main} showsVerticalScrollIndicator={false}>

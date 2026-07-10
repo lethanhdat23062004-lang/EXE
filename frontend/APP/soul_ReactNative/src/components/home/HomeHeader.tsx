@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
+  Alert,
   Image,
   Pressable,
   Text,
@@ -13,11 +14,13 @@ import { useAuthStore } from "@/store";
 import { styles } from "@/styles/home.styles";
 import { NotificationDropdown } from "./NotificationDropdown";
 import { ProfileModals } from "./ProfileModals";
+import UpgradeModal from "@/components/upgrade/UpgradeModal";
 
 type Props = {
   showSidebar: boolean;
   onToggleSidebar: () => void;
   webMode?: boolean;
+  onRatingPress?: () => void;
 };
 
 const POLL_INTERVAL = 30_000;
@@ -30,13 +33,15 @@ const webNavItems = [
   { label: "Cộng đồng", route: "/(tabs)/forum" },
 ];
 
-export function HomeHeader({ showSidebar, onToggleSidebar, webMode = false }: Props) {
+export function HomeHeader({ showSidebar, onToggleSidebar, webMode = false, onRatingPress }: Props) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showMyProfile, setShowMyProfile] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const { user, logout } = useAuthStore();
+  const isPremium = user?.isPremium ?? false;
 
   const fetchUnread = useCallback(async () => {
     try {
@@ -66,9 +71,25 @@ export function HomeHeader({ showSidebar, onToggleSidebar, webMode = false }: Pr
       setShowMyProfile(true);
     } else if (text === "Edit Profile") {
       setShowEditProfile(true);
+    } else if (text === "App Rating") {
+      onRatingPress?.();
+    } else if (text === "Nâng cấp tài khoản" || text === "SOUL PRO ✓") {
+      if (!isPremium) setShowUpgradeModal(true);
     }
     setShowProfileMenu(false);
   };
+
+  // Menu items — upgrade entry changes based on isPremium
+  const menuItems: [string, string][] = [
+    ["account-outline", "My Profile"],
+    ["pencil-outline", "Edit Profile"],
+    ["star-outline", "App Rating"],
+    ["bell-outline", "Reminders"],
+    isPremium
+      ? ["crown", "SOUL PRO ✓"]
+      : ["crown-outline", "Nâng cấp tài khoản"],
+    ["logout", "Log out"],
+  ];
 
   return (
     <View style={styles.header}>
@@ -139,6 +160,17 @@ export function HomeHeader({ showSidebar, onToggleSidebar, webMode = false }: Pr
             style={styles.avatar}
           />
 
+          {/* Premium crown badge on avatar */}
+          {isPremium && (
+            <View style={{
+              position: "absolute", top: -4, right: -4,
+              backgroundColor: "#F59E0B", borderRadius: 999,
+              width: 16, height: 16, justifyContent: "center", alignItems: "center",
+            }}>
+              <MaterialCommunityIcons name="crown" size={9} color="#fff" />
+            </View>
+          )}
+
           {showProfileMenu && (
             <View style={styles.profileMenu}>
               <View style={styles.profileTop}>
@@ -151,32 +183,60 @@ export function HomeHeader({ showSidebar, onToggleSidebar, webMode = false }: Pr
                   <Text style={styles.profileSub}>
                     {user?.bio || "Take care of your mind 🌱"}
                   </Text>
+                  {isPremium && (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 }}>
+                      <MaterialCommunityIcons name="crown" size={12} color="#F59E0B" />
+                      <Text style={{ fontSize: 11, color: "#F59E0B", fontWeight: "700" }}>SOUL PRO</Text>
+                    </View>
+                  )}
                 </View>
               </View>
 
-              {[
-                ["account-outline", "My Profile"],
-                ["pencil-outline", "Edit Profile"],
-                ["star-outline", "App Rating"],
-                ["bell-outline", "Reminders"],
-                ["logout", "Log out"],
-              ].map(([icon, text], index) => (
-                <TouchableOpacity
-                  key={text}
-                  onPress={() => handleActionPress(text)}
-                  style={[
-                    styles.profileAction,
-                    index === 4 && styles.profileLogout,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name={icon as any}
-                    size={22}
-                    color={index === 4 ? "#EF4444" : "#7C3AED"}
-                  />
-                  <Text style={styles.profileActionText}>{text}</Text>
-                </TouchableOpacity>
-              ))}
+              {menuItems.map(([icon, text], index) => {
+                const isLogout = text === "Log out";
+                const isUpgrade = text === "Nâng cấp tài khoản";
+                const isPro = text === "SOUL PRO ✓";
+                return (
+                  <TouchableOpacity
+                    key={text}
+                    onPress={() => handleActionPress(text)}
+                    style={[
+                      styles.profileAction,
+                      isLogout && styles.profileLogout,
+                    ]}
+                    disabled={isPro}
+                  >
+                    <MaterialCommunityIcons
+                      name={icon as any}
+                      size={22}
+                      color={
+                        isLogout ? "#EF4444"
+                        : isUpgrade ? "#7C3AED"
+                        : isPro ? "#F59E0B"
+                        : "#7C3AED"
+                      }
+                    />
+                    <Text style={[
+                      styles.profileActionText,
+                      isUpgrade && { color: "#7C3AED", fontWeight: "700" },
+                      isPro && { color: "#F59E0B", fontWeight: "700" },
+                    ]}>
+                      {text}
+                    </Text>
+                    {isUpgrade && (
+                      <View style={{
+                        marginLeft: "auto" as any,
+                        backgroundColor: "#7C3AED",
+                        borderRadius: 999,
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                      }}>
+                        <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>149K</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
         </Pressable>
@@ -193,6 +253,17 @@ export function HomeHeader({ showSidebar, onToggleSidebar, webMode = false }: Pr
         showEditProfile={showEditProfile}
         onCloseEditProfile={() => setShowEditProfile(false)}
         onOpenEditProfile={() => setShowEditProfile(true)}
+      />
+
+      <UpgradeModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onSuccess={() => {
+          setShowUpgradeModal(false);
+          setTimeout(() => {
+            Alert.alert("🎉 SOUL PRO", "Tài khoản của bạn đã được nâng cấp lên Premium!\nChúc bạn trải nghiệm chat AI không giới hạn.");
+          }, 300);
+        }}
       />
     </View>
   );

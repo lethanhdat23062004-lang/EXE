@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Modal,
   View,
@@ -23,6 +23,7 @@ export default function UpgradeModal({ visible, onClose, onSuccess }: UpgradeMod
   const [timeLeft, setTimeLeft] = useState(60);
   const [upgrading, setUpgrading] = useState(false);
   const upgradeAccount = useAuthStore((state) => state.upgradeAccount);
+  const isProcessingRef = useRef(false);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -30,12 +31,13 @@ export default function UpgradeModal({ visible, onClose, onSuccess }: UpgradeMod
     if (visible) {
       setTimeLeft(60);
       setUpgrading(false);
+      isProcessingRef.current = false;
 
       timer = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
-            handleAutoSuccess();
+            triggerUpgrade();
             return 0;
           }
           return prev - 1;
@@ -48,15 +50,20 @@ export default function UpgradeModal({ visible, onClose, onSuccess }: UpgradeMod
     };
   }, [visible]);
 
-  const handleAutoSuccess = async () => {
+  const triggerUpgrade = async () => {
+    // Prevent double-call from timer + button press
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+
     setUpgrading(true);
     const res = await upgradeAccount();
     setUpgrading(false);
+
     if (res.success) {
       onSuccess();
     } else {
+      isProcessingRef.current = false;
       Alert.alert("Lỗi", "Không thể nâng cấp tài khoản: " + res.message);
-      console.log("Upgrade failed:", res.message);
     }
   };
 
@@ -96,14 +103,11 @@ export default function UpgradeModal({ visible, onClose, onSuccess }: UpgradeMod
 
           <TouchableOpacity
             style={styles.simulateBtn}
-            onPress={() => {
-              setTimeLeft(0);
-              handleAutoSuccess();
-            }}
+            onPress={triggerUpgrade}
             disabled={upgrading}
           >
             <Text style={styles.simulateText}>
-              {upgrading ? "Đang xử lý..." : "Tôi đã thanh toán xong"}
+              {upgrading ? "Đang nâng cấp..." : "Tôi đã thanh toán xong"}
             </Text>
           </TouchableOpacity>
         </View>
