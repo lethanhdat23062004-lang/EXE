@@ -47,8 +47,16 @@ app.use(
       // Cho phép Postman / mobile app không có origin
       if (!origin) return callback(null, true);
 
+      const isLocalhost =
+        origin.startsWith("http://localhost:") ||
+        origin === "http://localhost" ||
+        origin.startsWith("http://127.0.0.1:") ||
+        origin === "http://127.0.0.1";
+
       const isAllowedOrigin =
-        allowedOrigins.includes(origin) || origin.endsWith(".vercel.app");
+        isLocalhost ||
+        allowedOrigins.includes(origin) ||
+        origin.endsWith(".vercel.app");
 
       if (isAllowedOrigin) {
         return callback(null, true);

@@ -1,27 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:soul_mobile/sceens/home/home.dart';
-import 'screens/home/home.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/api/api_client.dart';
+import 'app.dart';
 
-void main() {
-  runApp(const SoulApp());
-}
-
-class SoulApp extends StatelessWidget {
-  const SoulApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SOUL',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFFEFFCF8),
-        fontFamily: 'Roboto',
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF14B8A6),
-        ),
-      ),
-      home: const HomeScreen(),
-    );
-  }
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Initialize Dio HTTP client
+  ApiClient.instance.init();
+  runApp(
+    const ProviderScope(
+      child: SoulApp(),
+    ),
+  );
 }
