@@ -2,6 +2,7 @@ const Report = require("../models/Report");
 const Post = require("../models/Post");
 const Comment = require("../models/Comment");
 const ModerationLog = require("../models/ModerationLog");
+const { notifyActiveAdmins } = require("../services/notificationService");
 
 exports.getMyReports = async (req, res) => {
   try {
@@ -119,6 +120,14 @@ exports.createReport = async (req, res) => {
       status: "pending",
     });
 
+    await notifyActiveAdmins({
+      type: "moderation_review",
+      title: "Có báo cáo cộng đồng mới",
+      content: `${targetType === "post" ? "Bài viết" : "Bình luận"} bị báo cáo: ${reason.trim()}.`,
+      related: { type: "report", id: report._id },
+      dedupeKey: `manual-report:${report._id}`,
+    });
+
     return res.status(201).json({
       success: true,
       message: "Gửi báo cáo thành công.",
@@ -196,6 +205,14 @@ exports.createAppeal = async (req, res) => {
       performedBy: req.user._id,
       previousStatus,
       newStatus: "appeal_pending",
+    });
+
+    await notifyActiveAdmins({
+      type: "appeal_review",
+      title: "Có khiếu nại cần xem xét",
+      content: `Khiếu nại mới: ${appealReason.trim().slice(0, 160)}.`,
+      related: { type: "report", id: report._id },
+      dedupeKey: `appeal-review:${report._id}`,
     });
 
     return res.status(200).json({

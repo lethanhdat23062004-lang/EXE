@@ -64,14 +64,14 @@ export function HomeHeader({ showSidebar, onToggleSidebar, webMode = false, onRa
   };
 
   const handleActionPress = (text: string) => {
-    if (text === "Log out") {
+    if (text === "Đăng xuất") {
       logout();
       router.replace("/(auth)/login");
-    } else if (text === "My Profile") {
+    } else if (text === "Hồ sơ của tôi") {
       setShowMyProfile(true);
-    } else if (text === "Edit Profile") {
+    } else if (text === "Chỉnh sửa hồ sơ") {
       setShowEditProfile(true);
-    } else if (text === "App Rating") {
+    } else if (text === "Đánh giá ứng dụng") {
       onRatingPress?.();
     } else if (text === "Nâng cấp tài khoản" || text === "SOUL PRO ✓") {
       if (!isPremium) setShowUpgradeModal(true);
@@ -81,14 +81,14 @@ export function HomeHeader({ showSidebar, onToggleSidebar, webMode = false, onRa
 
   // Menu items — upgrade entry changes based on isPremium
   const menuItems: [string, string][] = [
-    ["account-outline", "My Profile"],
-    ["pencil-outline", "Edit Profile"],
-    ["star-outline", "App Rating"],
-    ["bell-outline", "Reminders"],
+    ["account-outline", "Hồ sơ của tôi"],
+    ["pencil-outline", "Chỉnh sửa hồ sơ"],
+    ["star-outline", "Đánh giá ứng dụng"],
+    ["bell-outline", "Nhắc nhở"],
     isPremium
       ? ["crown", "SOUL PRO ✓"]
       : ["crown-outline", "Nâng cấp tài khoản"],
-    ["logout", "Log out"],
+    ["logout", "Đăng xuất"],
   ];
 
   return (

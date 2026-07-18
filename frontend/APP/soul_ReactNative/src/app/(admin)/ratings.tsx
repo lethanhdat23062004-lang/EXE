@@ -25,6 +25,7 @@ import {
   RatingStatus,
 } from "@/api/ratingApi";
 import { StarRating } from "@/components/ratings/StarRating";
+import { colors } from "@/constants/colors";
 
 type Stats = {
   average: number;
@@ -47,9 +48,7 @@ const EMPTY_STATS: Stats = {
   distribution: {},
 };
 
-const SOUL_PURPLE = "#7C3AED";
-const SOUL_PURPLE_SOFT = "#EDE9FE";
-const STAR = "#F59E0B";
+const STAR = colors.accent; // #F59E0B
 
 const reasons = [
   ["spam", "Spam"],
@@ -79,15 +78,25 @@ const initials = (name?: string) =>
     .map((part) => part.charAt(0).toUpperCase())
     .join("");
 
+const webFont = Platform.select({ web: "'Inter', system-ui, sans-serif", default: undefined });
+const displayFont = Platform.select({ web: "'Lexend', 'Inter', system-ui", default: undefined });
+
 export default function AdminRatingsScreen() {
-  const { eventId: routeEventId } = useLocalSearchParams<{
+  const { eventId: routeEventId, ratingId: routeRatingId } = useLocalSearchParams<{
     eventId?: string | string[];
+    ratingId?: string | string[];
   }>();
   const { width } = useWindowDimensions();
   const compact = width < 760;
+  const isDesktop = width >= 900;
+  const numColumns = isDesktop ? 2 : 1;
+
   const initialEventId = Array.isArray(routeEventId)
     ? routeEventId[0]
     : routeEventId;
+  const targetRatingId = Array.isArray(routeRatingId)
+    ? routeRatingId[0]
+    : routeRatingId;
   const [eventFilter, setEventFilter] = useState(
     initialEventId && /^[0-9a-fA-F]{24}$/.test(initialEventId)
       ? initialEventId
@@ -109,6 +118,7 @@ export default function AdminRatingsScreen() {
   const [saving, setSaving] = useState(false);
   const [expandedReviews, setExpandedReviews] = useState<Record<string, boolean>>({});
   const [toast, setToast] = useState<ToastState>(null);
+  const [searchFocused, setSearchFocused] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setSearch(searchInput.trim()), 300);
@@ -119,6 +129,38 @@ export default function AdminRatingsScreen() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 2800);
   }, []);
+
+  useEffect(() => {
+    if (!targetRatingId || !/^[0-9a-fA-F]{24}$/.test(targetRatingId)) {
+      return;
+    }
+
+    let active = true;
+
+    const openTargetRating = async () => {
+      try {
+        const response = await adminRatingService.getDetail(targetRatingId);
+        if (active && response?.data) {
+          setSelected(response.data as EventRating);
+        }
+      } catch (error: any) {
+        if (active) {
+          showToast(
+            error.response?.data?.message ||
+              error.message ||
+              "Không thể mở đánh giá từ thông báo",
+            "error"
+          );
+        }
+      }
+    };
+
+    openTargetRating();
+
+    return () => {
+      active = false;
+    };
+  }, [showToast, targetRatingId]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -161,11 +203,11 @@ export default function AdminRatingsScreen() {
   }, [load]));
 
   const qualityBadge = useMemo(() => {
-    if (!stats.total) return { label: "Chưa có dữ liệu", color: "#64748B", bg: "#F1F5F9" };
-    if (stats.average >= 4.5) return { label: "↑ Xuất sắc", color: "#15803D", bg: "#DCFCE7" };
-    if (stats.average >= 4) return { label: "Tốt", color: "#047857", bg: "#D1FAE5" };
-    if (stats.average >= 3) return { label: "Ổn định", color: "#B45309", bg: "#FEF3C7" };
-    return { label: "Cần cải thiện", color: "#B91C1C", bg: "#FEE2E2" };
+    if (!stats.total) return { label: "Chưa có dữ liệu", color: colors.textSecondary, bg: colors.bgAlt };
+    if (stats.average >= 4.5) return { label: "↑ Xuất sắc", color: colors.success, bg: colors.successBg };
+    if (stats.average >= 4) return { label: "Tốt", color: colors.teal, bg: colors.tealBg };
+    if (stats.average >= 3) return { label: "Ổn định", color: colors.accent, bg: colors.accentBg };
+    return { label: "Cần cải thiện", color: colors.error, bg: colors.errorBg };
   }, [stats.average, stats.total]);
 
   const confirmHide = async () => {
@@ -226,72 +268,74 @@ export default function AdminRatingsScreen() {
     const canExpand = Boolean(item.comment && item.comment.length > 150);
 
     return (
-      <View style={styles.reviewCard}>
-        <View style={styles.reviewHeader}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials(user?.fullName)}</Text>
+      <View style={[styles.cardCell, { minWidth: isDesktop ? 320 : "100%" }]}>
+        <View style={styles.reviewCard}>
+          <View style={styles.reviewHeader}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initials(user?.fullName)}</Text>
+            </View>
+            <View style={styles.reviewIdentity}>
+              <Text style={styles.userName}>{user?.fullName || "Người dùng SOUL"}</Text>
+              <Text style={styles.eventName} numberOfLines={1}>
+                {event?.title || "Sự kiện SOUL"}
+              </Text>
+            </View>
+            <View style={[styles.statusBadge, hidden ? styles.hiddenBadge : styles.visibleBadge]}>
+              <Text style={[styles.statusBadgeText, hidden ? styles.hiddenText : styles.visibleText]}>
+                {hidden ? "Đã ẩn" : "Hiển thị"}
+              </Text>
+            </View>
           </View>
-          <View style={styles.reviewIdentity}>
-            <Text style={styles.userName}>{user?.fullName || "Người dùng SOUL"}</Text>
-            <Text style={styles.eventName} numberOfLines={1}>
-              {event?.title || "Sự kiện SOUL"}
-            </Text>
-          </View>
-          <View style={[styles.statusBadge, hidden ? styles.hiddenBadge : styles.visibleBadge]}>
-            <Text style={[styles.statusBadgeText, hidden ? styles.hiddenText : styles.visibleText]}>
-              {hidden ? "Đã ẩn" : "Hiển thị"}
-            </Text>
-          </View>
-        </View>
 
-        <View style={styles.reviewMetaRow}>
-          <StarRating value={item.rating} size={18} disabled />
-          <View style={styles.metaDot} />
-          <MaterialCommunityIcons name="clock-outline" size={15} color="#94A3B8" />
-          <Text style={styles.reviewDate}>
-            {new Date(item.createdAt).toLocaleDateString("vi-VN")}
-          </Text>
-        </View>
-
-        {item.comment ? (
-          <View>
-            <Text style={styles.reviewComment} numberOfLines={expanded ? undefined : 3}>
-              “{item.comment}”
+          <View style={styles.reviewMetaRow}>
+            <StarRating value={item.rating} size={16} disabled />
+            <View style={styles.metaDot} />
+            <MaterialCommunityIcons name="clock-outline" size={14} color={colors.textSecondary} />
+            <Text style={styles.reviewDate}>
+              {new Date(item.createdAt).toLocaleDateString("vi-VN")}
             </Text>
-            {canExpand && (
-              <TouchableOpacity
-                style={styles.readMoreButton}
-                onPress={() => setExpandedReviews((current) => ({
-                  ...current,
-                  [item._id]: !expanded,
-                }))}
-              >
-                <Text style={styles.readMoreText}>{expanded ? "Thu gọn" : "Đọc thêm"}</Text>
-              </TouchableOpacity>
-            )}
           </View>
-        ) : (
-          <Text style={styles.noComment}>Không có nhận xét bằng văn bản.</Text>
-        )}
 
-        <View style={styles.reviewActions}>
-          <TouchableOpacity style={styles.detailButton} onPress={() => setSelected(item)}>
-            <MaterialCommunityIcons name="open-in-new" size={16} color="#475569" />
-            <Text style={styles.detailButtonText}>Xem chi tiết</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.moderationButton, hidden && styles.restoreButton]}
-            onPress={() => hidden ? restore(item) : setHideTarget(item)}
-          >
-            <MaterialCommunityIcons
-              name={hidden ? "eye-outline" : "eye-off-outline"}
-              size={16}
-              color={hidden ? "#047857" : "#B91C1C"}
-            />
-            <Text style={[styles.moderationButtonText, hidden && styles.restoreButtonText]}>
-              {hidden ? "Hiện đánh giá" : "Ẩn đánh giá"}
-            </Text>
-          </TouchableOpacity>
+          {item.comment ? (
+            <View>
+              <Text style={styles.reviewComment} numberOfLines={expanded ? undefined : 3}>
+                “{item.comment}”
+              </Text>
+              {canExpand && (
+                <TouchableOpacity
+                  style={styles.readMoreButton}
+                  onPress={() => setExpandedReviews((current) => ({
+                    ...current,
+                    [item._id]: !expanded,
+                  }))}
+                >
+                  <Text style={styles.readMoreText}>{expanded ? "Thu gọn" : "Đọc thêm"}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            <Text style={styles.noComment}>Không có nhận xét bằng văn bản.</Text>
+          )}
+
+          <View style={styles.reviewActions}>
+            <TouchableOpacity style={styles.detailButton} onPress={() => setSelected(item)}>
+              <MaterialCommunityIcons name="open-in-new" size={15} color={colors.textSecondary} />
+              <Text style={styles.detailButtonText}>Xem chi tiết</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.moderationButton, hidden ? styles.restoreButton : styles.hideButton]}
+              onPress={() => hidden ? restore(item) : setHideTarget(item)}
+            >
+              <MaterialCommunityIcons
+                name={hidden ? "eye-outline" : "eye-off-outline"}
+                size={15}
+                color={hidden ? colors.success : colors.error}
+              />
+              <Text style={[styles.moderationButtonText, hidden ? styles.restoreButtonText : styles.hideButtonText]}>
+                {hidden ? "Hiện đánh giá" : "Ẩn đánh giá"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -310,29 +354,37 @@ export default function AdminRatingsScreen() {
         </View>
       )}
 
+      {/* Header Block (LinearGradient) */}
       <LinearGradient
-        colors={["#D97706", "#F59E0B"]}
+        colors={[colors.primary, colors.teal]}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        end={{ x: 1, y: 0 }}
         style={styles.headerShell}
       >
         <View style={styles.headerContent}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <MaterialCommunityIcons name="arrow-left" size={20} color="#fff" />
+          <TouchableOpacity style={styles.backButton} onPress={() => router.replace("/(admin)")}>
+            <MaterialCommunityIcons name="arrow-left" size={20} color="#FFFFFF" />
           </TouchableOpacity>
           <View style={styles.headerCopy}>
-            <Text style={[styles.headerTitle, { color: "#fff" }]}>Quản lý đánh giá</Text>
-            <Text style={[styles.headerSubtitle, { color: "rgba(255,255,255,0.9)" }]}>Phản hồi từ người tham dự sự kiện</Text>
+            <Text style={styles.headerTitle}>Quản lý đánh giá</Text>
+            <Text style={styles.headerSubtitle}>
+              Phản hồi và kiểm duyệt ý kiến từ người tham dự sự kiện.
+            </Text>
           </View>
-          <TouchableOpacity style={[styles.exportButton, { backgroundColor: "rgba(255,255,255,0.2)", borderColor: "transparent" }]} onPress={exportCsv}>
-            <MaterialCommunityIcons name="download-outline" size={18} color="#fff" />
-            {!compact && <Text style={[styles.exportText, { color: "#fff" }]}>Xuất CSV</Text>}
+          <TouchableOpacity
+            style={styles.exportButton}
+            onPress={exportCsv}
+          >
+            <MaterialCommunityIcons name="download-outline" size={18} color="#FFFFFF" />
+            {!compact && <Text style={styles.exportText}>Xuất CSV</Text>}
           </TouchableOpacity>
         </View>
       </LinearGradient>
 
       <FlatList
-        data={ratings}
+        key={isDesktop ? "desktop-list" : "mobile-list"}
+        numColumns={numColumns}
+        data={loading ? [] : ratings}
         renderItem={renderRating}
         keyExtractor={(item) => item._id}
         refreshing={loading}
@@ -340,12 +392,12 @@ export default function AdminRatingsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
         ListHeaderComponent={
-          <View>
+          <View style={styles.listHeader}>
             <View style={styles.statsGrid}>
               <StatCard
                 icon="star-outline"
-                iconColor={STAR}
-                iconBg="#FFFBEB"
+                iconColor={colors.accent}
+                iconBg={colors.accentBg}
                 value={loading ? "—" : stats.average.toFixed(1)}
                 label="Điểm trung bình"
                 context={qualityBadge.label}
@@ -355,24 +407,24 @@ export default function AdminRatingsScreen() {
               />
               <StatCard
                 icon="message-text-outline"
-                iconColor={SOUL_PURPLE}
-                iconBg={SOUL_PURPLE_SOFT}
+                iconColor={colors.primary}
+                iconBg={colors.primaryBg}
                 value={loading ? "—" : stats.total}
                 label="Tổng đánh giá"
                 compact={compact}
               />
               <StatCard
                 icon="calendar-check-outline"
-                iconColor="#2563EB"
-                iconBg="#DBEAFE"
+                iconColor={colors.teal}
+                iconBg={colors.tealBg}
                 value={loading ? "—" : stats.ratedEvents}
                 label="Sự kiện có đánh giá"
                 compact={compact}
               />
               <StatCard
                 icon="eye-off-outline"
-                iconColor="#64748B"
-                iconBg="#F1F5F9"
+                iconColor={colors.textSecondary}
+                iconBg={colors.bgAlt}
                 value={loading ? "—" : stats.hiddenTotal}
                 label="Đã ẩn"
                 compact={compact}
@@ -384,7 +436,7 @@ export default function AdminRatingsScreen() {
               <View style={[styles.overviewBody, compact && styles.overviewBodyCompact]}>
                 <View style={[styles.averageBlock, compact && styles.averageBlockCompact]}>
                   <Text style={styles.overviewAverage}>{stats.average.toFixed(1)}</Text>
-                  <StarRating value={Math.round(stats.average)} size={20} disabled />
+                  <StarRating value={Math.round(stats.average)} size={18} disabled />
                   <Text style={styles.overviewCount}>{stats.total} đánh giá</Text>
                 </View>
                 <View style={[styles.distributionList, compact && styles.distributionListCompact]}>
@@ -415,7 +467,7 @@ export default function AdminRatingsScreen() {
             {eventFilter && (
               <View style={styles.eventFilterRow}>
                 <View style={styles.eventFilterChip}>
-                  <MaterialCommunityIcons name="calendar-filter" size={16} color={SOUL_PURPLE} />
+                  <MaterialCommunityIcons name="calendar-filter" size={16} color={colors.primary} />
                   <Text style={styles.eventFilterText}>
                     Đang lọc theo sự kiện · {eventFilter.slice(-6)}
                   </Text>
@@ -424,7 +476,7 @@ export default function AdminRatingsScreen() {
                     accessibilityRole="button"
                     accessibilityLabel="Xóa bộ lọc sự kiện"
                   >
-                    <MaterialCommunityIcons name="close" size={17} color={SOUL_PURPLE} />
+                    <MaterialCommunityIcons name="close" size={17} color={colors.primary} />
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.eventFilterHint}>Xóa bộ lọc để xem đánh giá của mọi sự kiện.</Text>
@@ -432,24 +484,26 @@ export default function AdminRatingsScreen() {
             )}
 
             <View style={styles.toolbar}>
-              <View style={styles.searchBox}>
-                <MaterialCommunityIcons name="magnify" size={19} color="#94A3B8" />
+              <View style={[styles.searchBox, searchFocused && styles.searchBoxFocused]}>
+                <MaterialCommunityIcons name="magnify" size={18} color={searchFocused ? colors.primary : colors.textMuted} />
                 <TextInput
                   value={searchInput}
                   onChangeText={setSearchInput}
                   placeholder="Tìm user, sự kiện hoặc nội dung..."
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.textMuted}
                   style={styles.searchInput}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setSearchFocused(false)}
                 />
                 {searchInput.length > 0 && (
                   <TouchableOpacity onPress={() => setSearchInput("")}>
-                    <MaterialCommunityIcons name="close-circle" size={18} color="#CBD5E1" />
+                    <MaterialCommunityIcons name="close-circle" size={18} color={colors.textMuted} />
                   </TouchableOpacity>
                 )}
               </View>
               <View style={styles.statusFilters}>
                 {statusOptions.map((item) => (
-                  <FilterButton
+                  <FilterChip
                     key={item.value}
                     label={item.label}
                     active={status === item.value}
@@ -465,7 +519,7 @@ export default function AdminRatingsScreen() {
               contentContainerStyle={styles.secondaryFilters}
             >
               {sortOptions.map((item) => (
-                <FilterButton
+                <FilterChip
                   key={item.value}
                   label={item.label}
                   active={sort === item.value}
@@ -473,7 +527,7 @@ export default function AdminRatingsScreen() {
                 />
               ))}
               {[5, 4, 3, 2, 1].map((value) => (
-                <FilterButton
+                <FilterChip
                   key={value}
                   label={`${value}★`}
                   active={stars === value}
@@ -491,7 +545,7 @@ export default function AdminRatingsScreen() {
           ) : (
             <View style={styles.emptyState}>
               <View style={styles.emptyIcon}>
-                <MaterialCommunityIcons name="message-star-outline" size={34} color={SOUL_PURPLE} />
+                <MaterialCommunityIcons name="message-star-outline" size={32} color={colors.primary} />
               </View>
               <Text style={styles.emptyTitle}>Không có đánh giá phù hợp</Text>
               <Text style={styles.emptyText}>Thử thay đổi từ khóa hoặc bộ lọc để xem thêm kết quả.</Text>
@@ -522,8 +576,8 @@ export default function AdminRatingsScreen() {
               <TouchableOpacity key={value} style={styles.reasonRow} onPress={() => setHideReason(value)}>
                 <MaterialCommunityIcons
                   name={hideReason === value ? "radiobox-marked" : "radiobox-blank"}
-                  size={21}
-                  color={SOUL_PURPLE}
+                  size={20}
+                  color={colors.primary}
                 />
                 <Text style={styles.reasonText}>{label}</Text>
               </TouchableOpacity>
@@ -532,7 +586,7 @@ export default function AdminRatingsScreen() {
               value={hideNote}
               onChangeText={setHideNote}
               placeholder="Ghi chú kiểm duyệt"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textMuted}
               multiline
               maxLength={500}
               style={styles.noteInput}
@@ -557,7 +611,7 @@ export default function AdminRatingsScreen() {
             <View style={styles.detailModalHeader}>
               <Text style={styles.modalTitle}>Chi tiết đánh giá</Text>
               <TouchableOpacity onPress={() => setSelected(null)}>
-                <MaterialCommunityIcons name="close" size={21} color="#64748B" />
+                <MaterialCommunityIcons name="close" size={21} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
             {selected && (
@@ -605,7 +659,7 @@ function StatCard({
   return (
     <View style={[styles.statCard, compact && styles.statCardCompact]}>
       <View style={[styles.statIcon, { backgroundColor: iconBg }]}>
-        <MaterialCommunityIcons name={icon} size={21} color={iconColor} />
+        <MaterialCommunityIcons name={icon} size={20} color={iconColor} />
       </View>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
@@ -618,10 +672,10 @@ function StatCard({
   );
 }
 
-function FilterButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function FilterChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
-    <TouchableOpacity style={[styles.filterButton, active && styles.activeFilterButton]} onPress={onPress}>
-      <Text style={[styles.filterButtonText, active && styles.activeFilterButtonText]}>{label}</Text>
+    <TouchableOpacity style={[styles.filterChipButton, active && styles.activeFilterChipButton]} onPress={onPress}>
+      <Text style={[styles.filterChipText, active && styles.activeFilterChipText]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -653,123 +707,259 @@ function ReviewSkeleton() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
-  headerShell: { backgroundColor: "#FFFFFF", borderBottomWidth: 1, borderBottomColor: "#E2E8F0" },
-  headerContent: { width: "100%", maxWidth: 1280, alignSelf: "center", minHeight: 74, flexDirection: "row", alignItems: "center", paddingHorizontal: 22, gap: 12 },
-  backButton: { width: 42, height: 34, borderRadius: 8, borderWidth: 1, borderColor: "#CBD5E1", alignItems: "center", justifyContent: "center" },
-  headerCopy: { flex: 1 },
-  headerTitle: { fontSize: 20, lineHeight: 25, fontWeight: "900", color: "#0F172A" },
-  headerSubtitle: { marginTop: 2, fontSize: 12, color: "#64748B" },
-  exportButton: { minHeight: 40, paddingHorizontal: 15, borderRadius: 9, borderWidth: 1, borderColor: "#CBD5E1", backgroundColor: "#FFFFFF", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
-  exportText: { color: "#0F172A", fontWeight: "800", fontSize: 13 },
-  content: { width: "100%", maxWidth: 1280, alignSelf: "center", paddingHorizontal: 22, paddingTop: 22, paddingBottom: 48 },
-  statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 20 },
-  statCard: { flexGrow: 1, flexBasis: 220, minHeight: 134, backgroundColor: "#FFFFFF", borderRadius: 16, padding: 18, borderWidth: 1, borderColor: "#E2E8F0", shadowColor: "#0F172A", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 12, elevation: 1 },
-  statCardCompact: { flexBasis: "46%", minHeight: 128, padding: 15 },
-  statIcon: { width: 34, height: 34, borderRadius: 9, alignItems: "center", justifyContent: "center", marginBottom: 10 },
-  statValue: { color: "#0F172A", fontWeight: "500", fontSize: 29, lineHeight: 33 },
-  statLabel: { color: "#64748B", fontSize: 12, marginTop: 2 },
-  contextBadge: { alignSelf: "flex-start", marginTop: 7, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999 },
-  contextText: { fontSize: 10, fontWeight: "800" },
-  overviewCard: { backgroundColor: "#FFFFFF", borderRadius: 16, padding: 20, borderWidth: 1, borderColor: "#E2E8F0", marginBottom: 26 },
-  overviewCardCompact: { padding: 18 },
-  sectionEyebrow: { color: "#334155", fontSize: 12, fontWeight: "900", letterSpacing: 0.4, marginBottom: 18 },
-  overviewBody: { flexDirection: "row", gap: 24, alignItems: "flex-start" },
-  overviewBodyCompact: { flexDirection: "column", gap: 18 },
-  averageBlock: { width: 130 },
-  averageBlockCompact: { width: "100%" },
-  overviewAverage: { fontSize: 44, lineHeight: 50, color: "#0F172A", fontWeight: "500" },
-  overviewCount: { color: "#64748B", fontSize: 12, marginTop: 8 },
-  distributionList: { flex: 1, gap: 10, paddingTop: 5 },
-  distributionListCompact: { width: "100%", alignSelf: "stretch" },
-  distributionRow: { flexDirection: "row", alignItems: "center", gap: 9 },
-  distributionLabel: { width: 28, color: STAR, fontSize: 12, fontWeight: "700" },
-  progressTrack: { flex: 1, height: 7, borderRadius: 999, backgroundColor: "#F1F5F9", overflow: "hidden" },
-  progressFill: { height: "100%", borderRadius: 999, backgroundColor: STAR },
-  distributionCount: { width: 24, textAlign: "right", color: "#64748B", fontSize: 12 },
-  listHeadingRow: { marginBottom: 12 },
-  listHeading: { color: "#0F172A", fontSize: 17, fontWeight: "900" },
-  resultCount: { color: "#64748B", fontSize: 12, marginTop: 3 },
-  eventFilterRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 10, marginBottom: 12 },
-  eventFilterChip: {
-    minHeight: 34,
+  safeArea: { flex: 1, backgroundColor: colors.bg },
+  headerShell: {
+    paddingTop: 52,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerContent: {
+    width: "100%",
+    maxWidth: 1280,
+    alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
-    paddingHorizontal: 11,
-    borderRadius: 17,
-    borderWidth: 1,
-    borderColor: "#C4B5FD",
-    backgroundColor: "#F5F3FF",
+    paddingHorizontal: 20,
+    gap: 12
   },
-  eventFilterText: { color: "#5B21B6", fontSize: 12, fontWeight: "700" },
-  eventFilterHint: { color: "#64748B", fontSize: 12 },
-  toolbar: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 10, marginBottom: 10 },
-  searchBox: { flexGrow: 1, flexBasis: 320, minHeight: 44, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FFFFFF", borderRadius: 9, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 12 },
-  searchInput: { flex: 1, color: "#0F172A", fontSize: 13, paddingVertical: 0 },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.25)",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  headerCopy: { flex: 1 },
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    fontFamily: displayFont,
+    letterSpacing: 0.5
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: "rgba(255, 255, 255, 0.8)",
+    marginTop: 3,
+    fontFamily: webFont,
+    fontWeight: "500"
+  },
+  exportButton: {
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+    paddingHorizontal: 16
+  },
+  exportText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 13,
+    fontFamily: webFont
+  },
+  listHeader: {
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  content: {
+    width: "100%",
+    maxWidth: 1280,
+    alignSelf: "center",
+    paddingHorizontal: 14,
+    paddingBottom: 40
+  },
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    paddingHorizontal: 6,
+    gap: 12,
+    marginBottom: 16
+  },
+  statCard: {
+    flexGrow: 1,
+    flexBasis: 220,
+    minHeight: 120,
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...Platform.select({
+      web: { boxShadow: "0 8px 30px rgba(124, 58, 237, 0.04)" },
+      ios: { shadowColor: colors.primary, shadowOpacity: 0.05, shadowRadius: 16, shadowOffset: { width: 0, height: 6 } },
+      android: { elevation: 3 },
+      default: { elevation: 3 },
+    }),
+  },
+  statCardCompact: { flexBasis: "46%", minHeight: 110, padding: 12 },
+  statIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 8 },
+  statValue: { color: colors.textPrimary, fontWeight: "800", fontSize: 24, fontFamily: displayFont },
+  statLabel: { color: colors.textSecondary, fontSize: 11, fontWeight: "600", marginTop: 2, fontFamily: webFont },
+  contextBadge: { alignSelf: "flex-start", marginTop: 6, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
+  contextText: { fontSize: 10, fontWeight: "800", fontFamily: webFont },
+  overviewCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 20,
+    marginHorizontal: 6,
+    ...Platform.select({
+      web: { boxShadow: "0 8px 30px rgba(124, 58, 237, 0.04)" },
+      ios: { shadowColor: colors.primary, shadowOpacity: 0.05, shadowRadius: 16, shadowOffset: { width: 0, height: 6 } },
+      android: { elevation: 3 },
+      default: { elevation: 3 },
+    }),
+  },
+  overviewCardCompact: { padding: 14 },
+  sectionEyebrow: { color: colors.textPrimary, fontSize: 12, fontWeight: "900", letterSpacing: 0.4, marginBottom: 14, fontFamily: displayFont },
+  overviewBody: { flexDirection: "row", gap: 20, alignItems: "flex-start" },
+  overviewBodyCompact: { flexDirection: "column", gap: 14 },
+  averageBlock: { width: 120, alignItems: "center" },
+  averageBlockCompact: { width: "100%" },
+  overviewAverage: { fontSize: 40, color: colors.textPrimary, fontWeight: "800", fontFamily: displayFont, marginBottom: 4 },
+  overviewCount: { color: colors.textSecondary, fontSize: 12, marginTop: 6, fontFamily: webFont, fontWeight: "600" },
+  distributionList: { flex: 1, gap: 8, paddingTop: 2 },
+  distributionListCompact: { width: "100%", alignSelf: "stretch" },
+  distributionRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  distributionLabel: { width: 28, color: STAR, fontSize: 12, fontWeight: "700", fontFamily: webFont },
+  progressTrack: { flex: 1, height: 6, borderRadius: 999, backgroundColor: colors.bgAlt, overflow: "hidden" },
+  progressFill: { height: "100%", borderRadius: 999, backgroundColor: STAR },
+  distributionCount: { width: 24, textAlign: "right", color: colors.textSecondary, fontSize: 12, fontFamily: webFont, fontWeight: "600" },
+  listHeadingRow: { marginBottom: 12, paddingHorizontal: 6 },
+  listHeading: { color: colors.textPrimary, fontSize: 16, fontWeight: "900", fontFamily: displayFont },
+  resultCount: { color: colors.textSecondary, fontSize: 12, marginTop: 2, fontFamily: webFont },
+  eventFilterRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 12, paddingHorizontal: 6 },
+  eventFilterChip: {
+    minHeight: 32,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.borderPrimary,
+    backgroundColor: colors.primaryBg,
+  },
+  eventFilterText: { color: colors.primary, fontSize: 12, fontWeight: "700", fontFamily: webFont },
+  eventFilterHint: { color: colors.textSecondary, fontSize: 12, fontFamily: webFont },
+  toolbar: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 10, marginBottom: 10, paddingHorizontal: 6 },
+  searchBox: {
+    flexGrow: 1,
+    flexBasis: 320,
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+    ...Platform.select({
+      web: { boxShadow: "0 4px 12px rgba(0,0,0,0.03)" },
+      ios: { shadowColor: "#000", shadowOpacity: 0.03, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+      android: { elevation: 2 },
+      default: { elevation: 2 },
+    }),
+  },
+  searchBoxFocused: {
+    borderColor: colors.primary,
+    ...Platform.select({
+      web: { boxShadow: "0 0 0 3px rgba(109, 93, 251, 0.15)" },
+    }),
+  },
+  searchInput: { flex: 1, color: colors.textPrimary, fontSize: 13, paddingVertical: 0, fontFamily: webFont, fontWeight: "500" },
   statusFilters: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  secondaryFilters: { flexDirection: "row", gap: 6, paddingBottom: 14 },
-  filterButton: { minHeight: 36, paddingHorizontal: 13, borderRadius: 8, borderWidth: 1, borderColor: "#CBD5E1", backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
-  activeFilterButton: { borderColor: SOUL_PURPLE, backgroundColor: SOUL_PURPLE_SOFT },
-  filterButtonText: { color: "#334155", fontSize: 12, fontWeight: "700" },
-  activeFilterButtonText: { color: "#5B21B6" },
-  reviewCard: { backgroundColor: "#FFFFFF", borderRadius: 14, padding: 17, marginBottom: 12, borderWidth: 1, borderColor: "#E2E8F0", shadowColor: "#0F172A", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.035, shadowRadius: 9, elevation: 1 },
-  reviewHeader: { flexDirection: "row", alignItems: "flex-start", gap: 11 },
-  avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: "#DDD6FE", alignItems: "center", justifyContent: "center" },
-  avatarText: { color: "#6D28D9", fontSize: 12, fontWeight: "900" },
+  secondaryFilters: { flexDirection: "row", gap: 6, paddingBottom: 12, paddingHorizontal: 6 },
+  filterChipButton: { minHeight: 32, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" },
+  activeFilterChipButton: { borderColor: colors.primary, backgroundColor: colors.primary },
+  filterChipText: { color: colors.textSecondary, fontSize: 12, fontWeight: "700", fontFamily: webFont },
+  activeFilterChipText: { color: "#FFFFFF" },
+  cardCell: {
+    flex: 1,
+    padding: 6,
+  },
+  reviewCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...Platform.select({
+      web: { boxShadow: "0 4px 16px rgba(15, 23, 42, 0.02)" },
+      ios: { shadowColor: colors.primary, shadowOpacity: 0.02, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+      android: { elevation: 2 },
+    }),
+  },
+  reviewHeader: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  avatar: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.primaryBg, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.borderPrimary },
+  avatarText: { color: colors.primary, fontSize: 12, fontWeight: "900", fontFamily: displayFont },
   reviewIdentity: { flex: 1, minWidth: 0 },
-  userName: { color: "#0F172A", fontSize: 14, fontWeight: "900" },
-  eventName: { color: "#2563EB", fontSize: 12, marginTop: 3, fontWeight: "700" },
-  statusBadge: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5 },
-  visibleBadge: { backgroundColor: "#DCFCE7" },
-  hiddenBadge: { backgroundColor: "#FEE2E2" },
-  statusBadgeText: { fontSize: 10, fontWeight: "900" },
-  visibleText: { color: "#15803D" },
-  hiddenText: { color: "#B91C1C" },
-  reviewMetaRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 12 },
-  metaDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: "#CBD5E1" },
-  reviewDate: { color: "#64748B", fontSize: 11 },
-  reviewComment: { color: "#334155", fontSize: 14, lineHeight: 21, marginTop: 11 },
-  noComment: { color: "#94A3B8", fontSize: 13, fontStyle: "italic", marginTop: 11 },
+  userName: { color: colors.textPrimary, fontSize: 14, fontWeight: "900", fontFamily: displayFont },
+  eventName: { color: colors.primary, fontSize: 12, marginTop: 2, fontWeight: "700", fontFamily: webFont },
+  statusBadge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  visibleBadge: { backgroundColor: colors.successBg },
+  hiddenBadge: { backgroundColor: colors.errorBg },
+  statusBadgeText: { fontSize: 10, fontWeight: "900", fontFamily: webFont },
+  visibleText: { color: colors.success },
+  hiddenText: { color: colors.error },
+  reviewMetaRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 },
+  metaDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: colors.border },
+  reviewDate: { color: colors.textSecondary, fontSize: 11, fontFamily: webFont, fontWeight: "500" },
+  reviewComment: { color: colors.textPrimary, fontSize: 14, lineHeight: 20, marginTop: 10, fontFamily: webFont, fontWeight: "500" },
+  noComment: { color: colors.textMuted, fontSize: 12, fontStyle: "italic", marginTop: 10, fontFamily: webFont },
   readMoreButton: { alignSelf: "flex-start", marginTop: 4 },
-  readMoreText: { color: SOUL_PURPLE, fontSize: 12, fontWeight: "800" },
-  reviewActions: { flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", gap: 8, marginTop: 14, paddingTop: 13, borderTopWidth: 1, borderTopColor: "#F1F5F9" },
-  detailButton: { minHeight: 36, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 11, borderRadius: 8, borderWidth: 1, borderColor: "#CBD5E1", backgroundColor: "#FFFFFF" },
-  detailButtonText: { color: "#475569", fontSize: 12, fontWeight: "800" },
-  moderationButton: { minHeight: 36, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 11, borderRadius: 8, borderWidth: 1, borderColor: "#FECACA", backgroundColor: "#FFFFFF" },
-  restoreButton: { borderColor: "#A7F3D0" },
-  moderationButtonText: { color: "#B91C1C", fontSize: 12, fontWeight: "800" },
-  restoreButtonText: { color: "#047857" },
-  skeletonList: { gap: 12 },
-  skeletonCard: { backgroundColor: "#FFFFFF", borderRadius: 14, padding: 17, gap: 12, borderWidth: 1, borderColor: "#E2E8F0" },
-  skeletonHeader: { flexDirection: "row", alignItems: "center", gap: 11 },
-  skeleton: { backgroundColor: "#E2E8F0", borderRadius: 999 },
-  skeletonAvatar: { width: 42, height: 42 },
-  emptyState: { backgroundColor: "#FFFFFF", borderRadius: 16, borderWidth: 1, borderColor: "#E2E8F0", alignItems: "center", paddingVertical: 42, paddingHorizontal: 20 },
-  emptyIcon: { width: 62, height: 62, borderRadius: 20, backgroundColor: SOUL_PURPLE_SOFT, alignItems: "center", justifyContent: "center" },
-  emptyTitle: { color: "#0F172A", fontSize: 16, fontWeight: "900", marginTop: 14 },
-  emptyText: { color: "#64748B", fontSize: 13, textAlign: "center", marginTop: 5 },
-  clearFiltersButton: { marginTop: 16, minHeight: 38, paddingHorizontal: 14, borderRadius: 8, backgroundColor: SOUL_PURPLE, justifyContent: "center" },
-  clearFiltersText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
+  readMoreText: { color: colors.primary, fontSize: 12, fontWeight: "800", fontFamily: webFont },
+  reviewActions: { flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border },
+  detailButton: { minHeight: 34, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceAlt },
+  detailButtonText: { color: colors.textSecondary, fontSize: 12, fontWeight: "800", fontFamily: webFont },
+  moderationButton: { minHeight: 34, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, backgroundColor: colors.surface },
+  hideButton: { borderColor: colors.error, backgroundColor: colors.errorBg },
+  restoreButton: { borderColor: colors.success, backgroundColor: colors.successBg },
+  moderationButtonText: { color: colors.error, fontSize: 12, fontWeight: "800", fontFamily: webFont },
+  restoreButtonText: { color: colors.success },
+  hideButtonText: { color: colors.error },
+  skeletonList: { gap: 12, paddingHorizontal: 6 },
+  skeletonCard: { backgroundColor: colors.surface, borderRadius: 20, padding: 16, gap: 12, borderWidth: 1, borderColor: colors.border },
+  skeletonHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  skeleton: { backgroundColor: colors.bgAlt, borderRadius: 999 },
+  skeletonAvatar: { width: 40, height: 40, borderRadius: 12 },
+  emptyState: { backgroundColor: colors.surface, borderRadius: 20, borderWidth: 1, borderColor: colors.border, alignItems: "center", paddingVertical: 42, paddingHorizontal: 20, marginHorizontal: 6 },
+  emptyIcon: { width: 56, height: 56, borderRadius: 16, backgroundColor: colors.primaryBg, alignItems: "center", justifyContent: "center" },
+  emptyTitle: { color: colors.textPrimary, fontSize: 16, fontWeight: "900", marginTop: 12, fontFamily: displayFont },
+  emptyText: { color: colors.textSecondary, fontSize: 13, textAlign: "center", marginTop: 5, fontFamily: webFont },
+  clearFiltersButton: { marginTop: 16, minHeight: 38, paddingHorizontal: 14, borderRadius: 10, backgroundColor: colors.primary, justifyContent: "center" },
+  clearFiltersText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800", fontFamily: webFont },
   toast: { position: "absolute", zIndex: 20, top: 16, alignSelf: "center", maxWidth: 460, minHeight: 44, marginHorizontal: 16, paddingHorizontal: 14, borderRadius: 10, flexDirection: "row", alignItems: "center", gap: 8, shadowColor: "#000000", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 12, elevation: 8 },
-  toastSuccess: { backgroundColor: "#047857" },
-  toastError: { backgroundColor: "#B91C1C" },
-  toastText: { flex: 1, color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
+  toastSuccess: { backgroundColor: colors.success },
+  toastError: { backgroundColor: colors.error },
+  toastText: { flex: 1, color: "#FFFFFF", fontSize: 13, fontWeight: "700", fontFamily: webFont },
   modalOverlay: { flex: 1, backgroundColor: "rgba(15, 23, 42, 0.38)", alignItems: "center", justifyContent: "center", padding: 20 },
   modalBackdrop: { ...StyleSheet.absoluteFillObject },
-  actionModal: { width: "100%", maxWidth: 520, backgroundColor: "#FFFFFF", borderRadius: 18, padding: 22, gap: 12, shadowColor: "#000000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.18, shadowRadius: 22, elevation: 10 },
-  modalTitle: { color: "#0F172A", fontSize: 20, fontWeight: "900" },
-  modalSubtitle: { color: "#64748B", fontSize: 13 },
-  reasonRow: { flexDirection: "row", alignItems: "center", gap: 9, paddingVertical: 5 },
-  reasonText: { color: "#334155", fontSize: 13 },
-  noteInput: { minHeight: 86, borderWidth: 1, borderColor: "#CBD5E1", borderRadius: 10, padding: 11, textAlignVertical: "top", color: "#0F172A" },
-  modalActions: { flexDirection: "row", gap: 10, marginTop: 5 },
-  cancelButton: { flex: 1, minHeight: 44, borderRadius: 9, borderWidth: 1, borderColor: "#CBD5E1", alignItems: "center", justifyContent: "center" },
-  cancelButtonText: { color: "#334155", fontWeight: "800" },
-  confirmButton: { flex: 1, minHeight: 44, borderRadius: 9, backgroundColor: SOUL_PURPLE, flexDirection: "row", gap: 7, alignItems: "center", justifyContent: "center", paddingHorizontal: 13 },
-  confirmButtonText: { color: "#FFFFFF", fontWeight: "800" },
+  actionModal: { width: "100%", maxWidth: 520, backgroundColor: colors.surface, borderRadius: 20, padding: 20, gap: 12, shadowColor: "#000000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.18, shadowRadius: 22, elevation: 10, borderWidth: 1, borderColor: colors.border },
+  modalTitle: { color: colors.textPrimary, fontSize: 18, fontWeight: "900", fontFamily: displayFont },
+  modalSubtitle: { color: colors.textSecondary, fontSize: 13, fontFamily: webFont },
+  reasonRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 4 },
+  reasonText: { color: colors.textPrimary, fontSize: 13, fontFamily: webFont, fontWeight: "500" },
+  noteInput: { minHeight: 80, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, textAlignVertical: "top", color: colors.textPrimary, fontFamily: webFont, fontSize: 13 },
+  modalActions: { flexDirection: "row", gap: 10, marginTop: 4 },
+  cancelButton: { flex: 1, minHeight: 40, borderRadius: 10, borderWidth: 1, borderColor: colors.border, alignItems: "center", justifyContent: "center", backgroundColor: colors.surfaceAlt },
+  cancelButtonText: { color: colors.textSecondary, fontWeight: "800", fontFamily: webFont, fontSize: 13 },
+  confirmButton: { flex: 1, minHeight: 40, borderRadius: 10, backgroundColor: colors.primary, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", paddingHorizontal: 12 },
+  confirmButtonText: { color: "#FFFFFF", fontWeight: "800", fontFamily: webFont, fontSize: 13 },
   detailModalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  detailRow: { gap: 3, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: "#F1F5F9" },
-  detailLabel: { color: "#64748B", fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
-  detailValue: { color: "#0F172A", lineHeight: 20, fontSize: 13 },
+  detailRow: { gap: 3, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: colors.border },
+  detailLabel: { color: colors.textSecondary, fontSize: 10, fontWeight: "800", textTransform: "uppercase", fontFamily: webFont },
+  detailValue: { color: colors.textPrimary, lineHeight: 18, fontSize: 13, fontFamily: webFont, fontWeight: "500" },
 });

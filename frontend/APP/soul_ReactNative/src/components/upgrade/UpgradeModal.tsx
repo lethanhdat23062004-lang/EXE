@@ -26,7 +26,7 @@ export default function UpgradeModal({ visible, onClose, onSuccess }: UpgradeMod
   const isProcessingRef = useRef(false);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: any;
 
     if (visible) {
       setTimeLeft(60);
@@ -183,7 +183,6 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   qrOverlay: {
-    position: "absolute",
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",

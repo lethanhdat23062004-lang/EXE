@@ -9,6 +9,7 @@ const EventRegistrationMutex = require("../models/EventRegistrationMutex");
 const EventRating = require("../models/EventRating");
 const eventController = require("../controllers/eventController");
 const ratingController = require("../controllers/eventRatingController");
+const { getTestDatabaseUri } = require("./testDatabase");
 
 const response = () => ({
   statusCode: 200,
@@ -18,8 +19,7 @@ const response = () => ({
 });
 
 const run = async () => {
-  assert.ok(process.env.MONGODB_URI, "MONGODB_URI is required for integration tests");
-  await mongoose.connect(process.env.MONGODB_URI);
+  await mongoose.connect(getTestDatabaseUri());
   const marker = `registration-test-${Date.now()}`;
   let event;
   let admin;
@@ -41,6 +41,21 @@ const run = async () => {
       registeredCount: 0,
       createdBy: admin._id,
     });
+
+    const createPast = response();
+    await eventController.createEvent({
+      user: admin,
+      body: {
+        title: `${marker}-past-create`,
+        startDateTime: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+        endDateTime: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        eventType: "workshop",
+        capacity: 20,
+      },
+    }, createPast);
+    assert.equal(createPast.statusCode, 400);
+    assert.match(createPast.body.message, /Giờ bắt đầu đã qua/);
+    assert.equal(await Event.countDocuments({ title: `${marker}-past-create` }), 0);
 
     const first = response();
     const duplicate = response();

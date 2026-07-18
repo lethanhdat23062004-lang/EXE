@@ -259,16 +259,6 @@ export default function DiaryScreen() {
       }
     };
 
-    if (Platform.OS === "web") {
-      const confirmed = window.confirm("Bạn có chắc muốn xóa nhật ký này không?");
-
-      if (confirmed) {
-        await deleteNow();
-      }
-
-      return;
-    }
-
     Alert.alert("Xóa nhật ký", "Bạn có chắc muốn xóa nhật ký này không?", [
       {
         text: "Hủy",

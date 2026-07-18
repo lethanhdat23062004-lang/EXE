@@ -171,12 +171,14 @@ const login = async (req, res) => {
     const token = generateToken(user._id);
 
     // 7. Thông báo đăng nhập thành công
-    createNotification(
-      user._id,
-      "system",
-      "Đăng nhập thành công",
-      `Chào mừng trở lại, ${user.fullName}! Bạn vừa đăng nhập lúc ${new Date().toLocaleTimeString("vi-VN")}.`
-    );
+    if (user.role !== "admin") {
+      createNotification(
+        user._id,
+        "system",
+        "Đăng nhập thành công",
+        `Chào mừng trở lại, ${user.fullName}! Bạn vừa đăng nhập lúc ${new Date().toLocaleTimeString("vi-VN")}.`
+      );
+    }
 
     return res.status(200).json({
       success: true,

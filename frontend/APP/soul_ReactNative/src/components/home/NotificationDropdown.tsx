@@ -9,8 +9,10 @@ import {
   TouchableOpacity,
   View,
   Modal,
+  Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import {
   getNotifications,
   markAllRead,
@@ -73,10 +75,10 @@ function timeAgo(dateStr: string): string {
 // ─── Notification Item ────────────────────────────────────────────────────────
 function NotifItem({
   item,
-  onRead,
+  onPress,
 }: {
   item: AppNotification;
-  onRead: (id: string) => void;
+  onPress: () => void;
 }) {
   const cfg = getTypeConfig(item.type);
   return (
@@ -84,7 +86,7 @@ function NotifItem({
       // @ts-ignore
       className="notif-item"
       style={[s.item, !item.isRead && s.itemUnread]}
-      onPress={() => !item.isRead && onRead(item._id)}
+      onPress={onPress}
       activeOpacity={0.75}
     >
       <View style={[s.iconWrap, { backgroundColor: cfg.bg }]}>
@@ -140,17 +142,49 @@ export function NotificationDropdown({ visible, onClose }: Props) {
   }, [load]);
 
   const handleRead = async (id: string) => {
-    await markAsRead(id);
-    setNotifications((prev) =>
-      prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
-    );
+    try {
+      await markAsRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
+      );
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleMarkAll = async () => {
-    setMarkingAll(true);
-    await markAllRead();
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    setMarkingAll(false);
+    try {
+      setMarkingAll(true);
+      await markAllRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch {
+      /* ignore */
+    } finally {
+      setMarkingAll(false);
+    }
+  };
+
+  const handleItemPress = async (item: AppNotification) => {
+    // 1. Mark as read if unread
+    if (!item.isRead) {
+      await handleRead(item._id);
+    }
+
+    // 2. Close dropdown
+    onClose();
+
+    // 3. Handle navigation or display details
+    if (item.type === "event_registration" || item.type === "event_reminder") {
+      if (item.related?.id) {
+        router.push(`/user-events/${item.related.id}`);
+      } else {
+        router.push("/user-events");
+      }
+    } else if (item.type === "mental_insight" || item.type === "report_update") {
+      router.push("/emotional-test");
+    } else {
+      Alert.alert(item.title, item.content);
+    }
   };
 
   const unread = notifications.filter((n) => !n.isRead).length;
@@ -194,7 +228,7 @@ export function NotificationDropdown({ visible, onClose }: Props) {
               </View>
             ) : (
               notifications.map((n) => (
-                <NotifItem key={n._id} item={n} onRead={handleRead} />
+                <NotifItem key={n._id} item={n} onPress={() => handleItemPress(n)} />
               ))
             )}
           </ScrollView>
@@ -233,7 +267,7 @@ export function NotificationDropdown({ visible, onClose }: Props) {
             </View>
           ) : (
             notifications.map((n) => (
-              <NotifItem key={n._id} item={n} onRead={handleRead} />
+              <NotifItem key={n._id} item={n} onPress={() => handleItemPress(n)} />
             ))
           )}
         </ScrollView>

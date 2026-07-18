@@ -308,19 +308,6 @@ export default function UserEventDetailScreen() {
 
   const handleCancel = () => {
     if (!event) return;
-
-    if (Platform.OS === "web" && typeof globalThis.confirm === "function") {
-      const confirmed = globalThis.confirm(
-        "Bạn có chắc muốn hủy đăng ký sự kiện này không?"
-      );
-
-      if (confirmed) {
-        performCancelRegistration();
-      }
-
-      return;
-    }
-
     Alert.alert(
       "Hủy đăng ký",
       "Bạn có chắc muốn hủy đăng ký sự kiện này không?",

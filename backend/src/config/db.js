@@ -11,10 +11,22 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 30000,
     });
 
+    const {
+      ensureNotificationStorage,
+    } = require("../services/notificationService");
+    const {
+      ensureForumModerationStorage,
+    } = require("../services/forumModerationService");
+    const { ensureEventStorage } = require("../services/eventStorageService");
+    await ensureNotificationStorage();
+    await ensureForumModerationStorage();
+    await ensureEventStorage();
+
     console.log("MongoDB Connected");
+    return mongoose.connection;
   } catch (error) {
     console.error("MongoDB connection error:", error.message);
-    process.exit(1);
+    throw error;
   }
 };
 
