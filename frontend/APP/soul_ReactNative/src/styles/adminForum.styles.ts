@@ -5,8 +5,8 @@ const webFont = Platform.select({ web: "'Inter', system-ui, sans-serif", default
 const displayFont = Platform.select({ web: "'Lexend', 'Inter', system-ui", default: undefined });
 
 const cardShadow = Platform.select({
-  web: { boxShadow: "0 4px 20px rgba(124, 58, 237, 0.09)" },
-  ios: { shadowColor: colors.primary, shadowOpacity: 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: 4 } },
+  web: { boxShadow: "0 8px 30px rgba(124, 58, 237, 0.04)" },
+  ios: { shadowColor: colors.primary, shadowOpacity: 0.05, shadowRadius: 16, shadowOffset: { width: 0, height: 6 } },
   android: { elevation: 3 },
   default: { elevation: 3 },
 });
@@ -22,61 +22,56 @@ export const adminForumStyles = StyleSheet.create({
   header: {
     paddingTop: 52,
     paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: colors.primaryBg,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    borderBottomWidth: 1,
-    borderColor: colors.borderPrimary,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
 
   headerTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 18,
+    marginBottom: 16,
   },
 
   backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.surface,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.25)",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.border,
   },
 
   headerIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.primary,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     alignItems: "center",
     justifyContent: "center",
-    ...Platform.select({
-      ios: { shadowColor: colors.primary, shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
-      android: { elevation: 5 },
-      web: { boxShadow: "0 4px 14px rgba(124, 58, 237, 0.4)" },
-      default: { elevation: 5 },
-    }),
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
 
   title: {
-    fontSize: 30,
-    fontWeight: "800",
-    color: colors.primary,
+    fontSize: 26,
+    fontWeight: "900",
+    color: "#FFFFFF",
     fontFamily: displayFont,
+    letterSpacing: 0.5,
   },
 
   subtitle: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    lineHeight: 22,
-    marginTop: 8,
-    marginBottom: 18,
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.85)",
+    lineHeight: 20,
+    marginTop: 6,
+    marginBottom: 20,
     fontFamily: webFont,
+    fontWeight: "500",
   },
 
   // ── Stats Row ─────────────────────────────────────────────────────────────
@@ -90,8 +85,8 @@ export const adminForumStyles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.surface,
     borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 6,
     alignItems: "center",
     borderWidth: 1,
     borderColor: colors.border,
@@ -99,53 +94,62 @@ export const adminForumStyles = StyleSheet.create({
   },
 
   statValue: {
-    fontSize: 21,
+    fontSize: 20,
     fontWeight: "800",
-    color: colors.primary,
+    color: colors.textPrimary,
     fontFamily: displayFont,
   },
 
   statLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: colors.textSecondary,
-    marginTop: 4,
+    fontWeight: "600",
+    marginTop: 2,
     textAlign: "center",
     fontFamily: webFont,
   },
 
   // ── Search ────────────────────────────────────────────────────────────────
   searchBox: {
-    height: 52,
-    borderRadius: 18,
+    height: 50,
+    borderRadius: 16,
     backgroundColor: colors.surface,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
-    marginBottom: 14,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: colors.border,
     ...Platform.select({
-      web: { boxShadow: "0 2px 8px rgba(0,0,0,0.05)" },
-      ios: { shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
+      web: { boxShadow: "0 4px 12px rgba(0,0,0,0.03)" },
+      ios: { shadowColor: "#000", shadowOpacity: 0.03, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
       android: { elevation: 2 },
       default: { elevation: 2 },
     }),
   },
 
+  searchBoxFocused: {
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.textPrimary,
-    paddingHorizontal: 10,
+    fontWeight: "500",
+    paddingHorizontal: 8,
     fontFamily: webFont,
-    // @ts-ignore
-    // outlineStyle: "none",
   },
 
   // ── Filter Chips ──────────────────────────────────────────────────────────
   filterRow: {
-    gap: 10,
+    gap: 8,
     paddingRight: 20,
+    alignItems: "center",
   },
 
   filterChip: {
@@ -153,41 +157,41 @@ export const adminForumStyles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: colors.surface,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: "rgba(255, 255, 255, 0.25)",
   },
 
   filterChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: "#FFFFFF",
+    borderColor: "#FFFFFF",
   },
 
   filterText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
-    color: colors.primary,
+    color: "#FFFFFF",
     fontFamily: webFont,
   },
 
   filterTextActive: {
-    color: "#FFFFFF",
+    color: colors.primary,
   },
 
   // ── Post List ─────────────────────────────────────────────────────────────
   list: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 40,
   },
 
   // ── Post Card ─────────────────────────────────────────────────────────────
   postCard: {
     backgroundColor: colors.surface,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: colors.border,
     ...cardShadow,
@@ -197,7 +201,7 @@ export const adminForumStyles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 12,
   },
 
   authorBox: {
@@ -207,15 +211,13 @@ export const adminForumStyles = StyleSheet.create({
   },
 
   avatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primaryBg,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 10,
-    borderWidth: 2,
-    borderColor: colors.borderPrimary,
+    borderWidth: 1,
   },
 
   authorInfo: {
@@ -223,16 +225,17 @@ export const adminForumStyles = StyleSheet.create({
   },
 
   authorName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "800",
     color: colors.textPrimary,
     fontFamily: displayFont,
   },
 
   postDate: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textMuted,
-    marginTop: 2,
+    fontWeight: "500",
+    marginTop: 1,
     fontFamily: webFont,
   },
 
@@ -241,37 +244,38 @@ export const adminForumStyles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 999,
+    paddingVertical: 5,
+    borderRadius: 20,
   },
 
   statusText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "800",
     fontFamily: webFont,
   },
 
   postTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "800",
     color: colors.textPrimary,
-    marginBottom: 8,
+    marginBottom: 6,
     fontFamily: displayFont,
   },
 
   postContent: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 13,
+    lineHeight: 19,
     color: colors.textSecondary,
     fontFamily: webFont,
+    fontWeight: "500",
   },
 
   postMetaRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 18,
-    marginTop: 14,
-    paddingTop: 14,
+    gap: 16,
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
@@ -279,11 +283,11 @@ export const adminForumStyles = StyleSheet.create({
   metaItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: 4,
   },
 
   metaText: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textSecondary,
     fontWeight: "600",
     fontFamily: webFont,
@@ -300,30 +304,16 @@ export const adminForumStyles = StyleSheet.create({
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 999,
-  },
-
-  viewButton: {
-    backgroundColor: colors.infoBg,
-  },
-
-  approveButton: {
-    backgroundColor: colors.successBg,
-  },
-
-  hideButton: {
-    backgroundColor: colors.warningBg,
-  },
-
-  deleteButton: {
-    backgroundColor: colors.errorBg,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
   },
 
   actionText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
     fontFamily: webFont,
   },
@@ -331,28 +321,29 @@ export const adminForumStyles = StyleSheet.create({
   // ── Empty State ───────────────────────────────────────────────────────────
   emptyBox: {
     alignItems: "center",
-    paddingVertical: 70,
+    paddingVertical: 60,
     paddingHorizontal: 24,
   },
 
   emptyIcon: {
-    fontSize: 52,
-    marginBottom: 14,
+    fontSize: 48,
+    marginBottom: 12,
   },
 
   emptyTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: "800",
     color: colors.textPrimary,
     fontFamily: displayFont,
   },
 
   emptyText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
     textAlign: "center",
-    marginTop: 8,
-    lineHeight: 21,
+    marginTop: 6,
+    lineHeight: 18,
     fontFamily: webFont,
+    fontWeight: "500",
   },
 });

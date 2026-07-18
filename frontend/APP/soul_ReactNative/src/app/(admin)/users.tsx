@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import {
   RefreshControl,
   ScrollView,
   Modal,
+  Platform,
+  useWindowDimensions,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -26,22 +28,35 @@ import {
 import { colors } from "@/constants/colors";
 
 // ── Constants ──────────────────────────────────────────────────
+const webFont = Platform.select({ web: "'Inter', system-ui, sans-serif", default: undefined });
+const displayFont = Platform.select({ web: "'Lexend', 'Inter', system-ui", default: undefined });
+
 const ROLE_CONFIG: Record<
   string,
   { label: string; color: string; bg: string; icon: string }
 > = {
-  user: { label: "Người dùng", color: "#2563EB", bg: "#DBEAFE", icon: "account" },
-  event_organizer: { label: "Tổ chức sự kiện", color: "#D97706", bg: "#FEF3C7", icon: "calendar-star" },
-  admin: { label: "Quản trị viên", color: "#7C3AED", bg: "#EDE9FE", icon: "shield-crown" },
+  user: { label: "Người dùng", color: colors.teal, bg: colors.tealBg, icon: "account-outline" },
+  event_organizer: {
+    label: "Organizer",
+    color: colors.accent,
+    bg: colors.accentBg,
+    icon: "calendar-star",
+  },
+  admin: {
+    label: "Quản trị viên",
+    color: colors.primary,
+    bg: colors.primaryBg,
+    icon: "shield-crown-outline",
+  },
 };
 
 const STATUS_CONFIG: Record<
   string,
   { label: string; color: string; bg: string }
 > = {
-  active: { label: "Hoạt động", color: "#059669", bg: "#D1FAE5" },
-  blocked: { label: "Bị khóa", color: "#DC2626", bg: "#FEE2E2" },
-  inactive: { label: "Không hoạt động", color: "#6B7280", bg: "#F3F4F6" },
+  active: { label: "Hoạt động", color: colors.success, bg: colors.successBg },
+  blocked: { label: "Bị khóa", color: colors.error, bg: colors.errorBg },
+  inactive: { label: "Không hoạt động", color: colors.textSecondary, bg: colors.bgAlt },
 };
 
 const FILTER_TABS = [
@@ -52,6 +67,18 @@ const FILTER_TABS = [
   { key: "blocked", label: "Bị khóa" },
 ];
 
+const getAvatarColors = (name: string) => {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const h = Math.abs(hash) % 360;
+  return {
+    bg: `hsl(${h}, 70%, 94%)`,
+    text: `hsl(${h}, 65%, 42%)`
+  };
+};
+
 // ── UserCard component ─────────────────────────────────────────
 function UserCard({
   user,
@@ -60,6 +87,8 @@ function UserCard({
   user: AdminUser;
   onAction: (user: AdminUser) => void;
 }) {
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 900;
   const role = ROLE_CONFIG[user.role] || ROLE_CONFIG.user;
   const status = STATUS_CONFIG[user.status] || STATUS_CONFIG.active;
   const initials = user.fullName
@@ -70,283 +99,353 @@ function UserCard({
     .toUpperCase();
 
   return (
-    <TouchableOpacity style={styles.userCard} onPress={() => onAction(user)} activeOpacity={0.8}>
-      {/* Avatar */}
-      <View style={[styles.avatar, { backgroundColor: role.bg }]}>
-        <Text style={[styles.avatarText, { color: role.color }]}>{initials}</Text>
-      </View>
+    <View style={[styles.cardCell, { minWidth: isDesktop ? 320 : "100%" }]}>
+      <View style={styles.userCard}>
+        {/* Left Side: Avatar & Basic Info */}
+        <View style={[styles.avatar, { backgroundColor: getAvatarColors(user.fullName).bg }]}>
+          <Text style={[styles.avatarText, { color: getAvatarColors(user.fullName).text }]}>
+            {initials}
+          </Text>
+        </View>
 
-      {/* Info */}
-      <View style={styles.userInfo}>
-        <Text style={styles.userName} numberOfLines={1}>
-          {user.fullName}
-        </Text>
-        <Text style={styles.userEmail} numberOfLines={1}>
-          {user.email}
-        </Text>
-        <View style={styles.badgeRow}>
-          {/* Role badge */}
-          <View style={[styles.badge, { backgroundColor: role.bg }]}>
-            <MaterialCommunityIcons name={role.icon as any} size={11} color={role.color} />
-            <Text style={[styles.badgeText, { color: role.color }]}>{role.label}</Text>
+        <View style={styles.userInfo}>
+          <Text style={styles.userName} numberOfLines={1}>
+            {user.fullName}
+          </Text>
+          <View style={styles.emailRow}>
+            <Text style={styles.userEmail} numberOfLines={1}>
+              {user.email}
+            </Text>
           </View>
-          {/* Status badge */}
-          <View style={[styles.badge, { backgroundColor: status.bg }]}>
-            <Text style={[styles.badgeText, { color: status.color }]}>{status.label}</Text>
+
+          {/* Badges */}
+          <View style={styles.badgeRow}>
+            <View style={[styles.badge, { backgroundColor: role.bg }]}>
+              <MaterialCommunityIcons name={role.icon as any} size={11} color={role.color} />
+              <Text style={[styles.badgeText, { color: role.color }]}>{role.label}</Text>
+            </View>
+            <View style={styles.statusBadge}>
+              <View style={[styles.statusDot, { backgroundColor: status.color }]} />
+              <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* Chevron */}
-      <MaterialCommunityIcons name="dots-vertical" size={22} color="#9CA3AF" />
-    </TouchableOpacity>
+        {/* Right Side: Options/More Actions button */}
+        <TouchableOpacity style={styles.menuTrigger} onPress={() => onAction(user)}>
+          <MaterialCommunityIcons name="dots-vertical" size={20} color={colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
-// ── Main Screen ────────────────────────────────────────────────
+// ── Main Screen component ──────────────────────────────────────
 export default function AdminUsersScreen() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
-  const [filterTab, setFilterTab] = useState(""); // role filter, "blocked" = status filter
-  const [actionLoading, setActionLoading] = useState(false);
+  const [filterTab, setFilterTab] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
 
-  // States cho Custom Popup Modal
+  // Modal actions state
   const [selectedUserForModal, setSelectedUserForModal] = useState<AdminUser | null>(null);
   const [showActionModal, setShowActionModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState<{
     title: string;
     message: string;
-    isDestructive?: boolean;
     onConfirm: () => void;
+    type: "role" | "status";
+    targetValue: string;
   } | null>(null);
 
-  // Fetch users
-  const fetchUsers = useCallback(
-    async (searchVal = search, tab = filterTab) => {
-      try {
-        const params: Record<string, string | number> = { limit: 50 };
-        if (searchVal.trim()) params.search = searchVal.trim();
-        if (tab === "blocked") {
-          params.status = "blocked";
-        } else if (tab) {
-          params.role = tab;
-        }
+  const [actionLoading, setActionLoading] = useState(false);
 
-        const res = await getAdminUsers(params);
-        if (res.success && res.data) {
-          setUsers(res.data.users);
-        } else {
-          Alert.alert("Lỗi", res.message || "Không thể tải danh sách người dùng.");
-        }
-      } catch {
-        Alert.alert("Lỗi", "Không thể kết nối đến máy chủ.");
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 900;
+  const numColumns = isDesktop ? 2 : 1;
+
+  const fetchUsers = async () => {
+    try {
+      const response = await getAdminUsers();
+      if (response.success && response.data) {
+        const usersArray = Array.isArray(response.data)
+          ? response.data
+          : Array.isArray(response.data.users)
+          ? response.data.users
+          : [];
+        setUsers(usersArray);
+      } else {
+        Alert.alert("Lỗi", response.message || "Không thể tải danh sách người dùng");
       }
-    },
-    [search, filterTab]
-  );
+    } catch (error: any) {
+      Alert.alert("Lỗi", error?.message || "Đã xảy ra lỗi khi tải danh sách");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     fetchUsers();
-  }, [filterTab]);
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchUsers(search, filterTab);
+    fetchUsers();
   };
 
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(true);
-      fetchUsers(search, filterTab);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [search]);
+  // Stats computation
+  const totalUsers = users.length;
+  const organizerCount = users.filter((u) => u.role === "event_organizer").length;
+  const blockedCount = users.filter((u) => u.status === "blocked").length;
 
-  // Action menu cho từng user
+  // Filtered Users logic
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      // 1. Role / Status tab filter
+      if (filterTab) {
+        if (filterTab === "blocked") {
+          if (user.status !== "blocked") return false;
+        } else {
+          if (user.role !== filterTab) return false;
+        }
+      }
+
+      // 2. Search query filter
+      const keyword = search.trim().toLowerCase();
+      if (keyword) {
+        const matchesName = user.fullName.toLowerCase().includes(keyword);
+        const matchesEmail = user.email.toLowerCase().includes(keyword);
+        if (!matchesName && !matchesEmail) return false;
+      }
+
+      return true;
+    });
+  }, [users, filterTab, search]);
+
+  const getTabLabel = (key: string, label: string) => {
+    let count = 0;
+    if (!key) {
+      count = users.length;
+    } else if (key === "blocked") {
+      count = blockedCount;
+    } else {
+      count = users.filter((u) => u.role === key).length;
+    }
+    return `${label} (${count})`;
+  };
+
+  // User Actions handlers
   const handleUserAction = (user: AdminUser) => {
     setSelectedUserForModal(user);
     setShowActionModal(true);
   };
 
-  const confirmStatusChange = (user: AdminUser, newStatus: "active" | "blocked") => {
-    const label = newStatus === "blocked" ? "khóa" : "mở khóa";
+  const openConfirmChange = (
+    type: "role" | "status",
+    targetValue: string,
+    title: string,
+    message: string
+  ) => {
+    setShowActionModal(false);
     setConfirmConfig({
-      title: "Xác nhận",
-      message: `Bạn có chắc muốn ${label} tài khoản của "${user.fullName}" không?`,
-      isDestructive: newStatus === "blocked",
-      onConfirm: () => {
+      title,
+      message,
+      type,
+      targetValue,
+      onConfirm: async () => {
+        if (!selectedUserForModal) return;
         setShowConfirmModal(false);
-        doUpdateStatus(user._id, newStatus);
+        setActionLoading(true);
+        try {
+          let response;
+          if (type === "role") {
+            response = await updateAdminUserRole(selectedUserForModal._id, targetValue as any);
+          } else {
+            response = await updateAdminUserStatus(selectedUserForModal._id, targetValue as any);
+          }
+
+          if (response.success) {
+            // Update local state directly
+            setUsers((prev) =>
+              prev.map((u) =>
+                u._id === selectedUserForModal._id
+                  ? {
+                      ...u,
+                      role: type === "role" ? (targetValue as any) : u.role,
+                      status: type === "status" ? (targetValue as any) : u.status,
+                    }
+                  : u
+              )
+            );
+            Alert.alert("Thành công", "Cập nhật thành viên thành công!");
+          } else {
+            Alert.alert("Lỗi", response.message || "Không thể cập nhật");
+          }
+        } catch (err: any) {
+          Alert.alert("Lỗi", err?.message || "Đã xảy ra lỗi khi cập nhật");
+        } finally {
+          setActionLoading(false);
+          setSelectedUserForModal(null);
+        }
       },
     });
-    setShowActionModal(false);
     setShowConfirmModal(true);
   };
-
-  const confirmRoleChange = (user: AdminUser, newRole: "user" | "event_organizer") => {
-    const label =
-      newRole === "event_organizer"
-        ? `gán quyền Event Organizer cho "${user.fullName}"`
-        : `thu hồi quyền Event Organizer của "${user.fullName}"`;
-    setConfirmConfig({
-      title: "Xác nhận",
-      message: `Bạn có chắc muốn ${label} không?`,
-      isDestructive: false,
-      onConfirm: () => {
-        setShowConfirmModal(false);
-        doUpdateRole(user._id, newRole);
-      },
-    });
-    setShowActionModal(false);
-    setShowConfirmModal(true);
-  };
-
-  const doUpdateStatus = async (id: string, status: "active" | "blocked") => {
-    setActionLoading(true);
-    const res = await updateAdminUserStatus(id, status);
-    setActionLoading(false);
-    if (res.success) {
-      Alert.alert("✅ Thành công", res.message);
-      fetchUsers(search, filterTab);
-    } else {
-      Alert.alert("❌ Lỗi", res.message);
-    }
-  };
-
-  const doUpdateRole = async (id: string, role: "user" | "event_organizer") => {
-    setActionLoading(true);
-    const res = await updateAdminUserRole(id, role);
-    setActionLoading(false);
-    if (res.success) {
-      Alert.alert("✅ Thành công", res.message);
-      fetchUsers(search, filterTab);
-    } else {
-      Alert.alert("❌ Lỗi", res.message);
-    }
-  };
-
-  // Stats summary
-  const totalUsers = users.length;
-  const blockedCount = users.filter((u) => u.status === "blocked").length;
-  const organizerCount = users.filter((u) => u.role === "event_organizer").length;
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" />
 
       {/* Action loading overlay */}
       {actionLoading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={colors.dark} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       )}
 
-      {/* Header */}
+      {/* Header Block (LinearGradient) */}
       <LinearGradient
-        colors={["#8B5CF6", "#3B82F6"]}
+        colors={[colors.primary, colors.teal]}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
+        end={{ x: 1, y: 0 }}
+        style={styles.headerShell}
       >
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#fff" />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: "#fff" }]}>Quản lý Người dùng</Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.headerContent}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.replace("/(admin)")}>
+            <MaterialCommunityIcons name="arrow-left" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+          <View style={styles.headerCopy}>
+            <Text style={styles.headerTitle}>Quản lý người dùng</Text>
+            <Text style={styles.headerSubtitle}>
+              Xem thông tin, phân quyền và trạng thái hoạt động của thành viên.
+            </Text>
+          </View>
+        </View>
       </LinearGradient>
 
-      {/* Stats row */}
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{totalUsers}</Text>
-          <Text style={styles.statLabel}>Tổng</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: "#D97706" }]}>{organizerCount}</Text>
-          <Text style={styles.statLabel}>Organizer</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: "#DC2626" }]}>{blockedCount}</Text>
-          <Text style={styles.statLabel}>Bị khóa</Text>
-        </View>
-      </View>
+      {/* List content with unified list view */}
+      <FlatList
+        key={isDesktop ? "desktop-list" : "mobile-list"}
+        numColumns={numColumns}
+        data={loading ? [] : filteredUsers}
+        keyExtractor={(item) => item._id}
+        renderItem={({ item }) => <UserCard user={item} onAction={handleUserAction} />}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+          />
+        }
+        ListHeaderComponent={
+          <View style={styles.listHeader}>
+            {/* Stats row - Three separate cards */}
+            <View style={styles.statsContainer}>
+              <View style={styles.statCard}>
+                <View style={[styles.statIconWrapper, { backgroundColor: "#F5F3FF" }]}>
+                  <MaterialCommunityIcons name="account-group-outline" size={20} color={colors.primary} />
+                </View>
+                <View style={styles.statInfo}>
+                  <Text style={styles.statValue}>{totalUsers}</Text>
+                  <Text style={styles.statLabel}>Tổng người dùng</Text>
+                </View>
+              </View>
 
-      {/* Search */}
-      <View style={styles.searchContainer}>
-        <MaterialCommunityIcons name="magnify" size={20} color="#9CA3AF" style={{ marginRight: 8 }} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Tìm theo tên hoặc email..."
-          placeholderTextColor="#9CA3AF"
-          value={search}
-          onChangeText={setSearch}
-          autoCapitalize="none"
-        />
-        {search.length > 0 && (
-          <TouchableOpacity onPress={() => setSearch("")}>
-            <MaterialCommunityIcons name="close-circle" size={18} color="#9CA3AF" />
-          </TouchableOpacity>
-        )}
-      </View>
+              <View style={styles.statCard}>
+                <View style={[styles.statIconWrapper, { backgroundColor: "#FEF3C7" }]}>
+                  <MaterialCommunityIcons name="account-tie-outline" size={20} color="#D97706" />
+                </View>
+                <View style={styles.statInfo}>
+                  <Text style={styles.statValue}>{organizerCount}</Text>
+                  <Text style={styles.statLabel}>Organizer</Text>
+                </View>
+              </View>
 
-      {/* Filter tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterScroll}
-        contentContainerStyle={styles.filterContainer}
-      >
-        {FILTER_TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[styles.filterTab, filterTab === tab.key && styles.filterTabActive]}
-            onPress={() => setFilterTab(tab.key)}
-          >
-            <Text
-              style={[styles.filterTabText, filterTab === tab.key && styles.filterTabTextActive]}
-            >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <View style={styles.statCard}>
+                <View style={[styles.statIconWrapper, { backgroundColor: "#FEE2E2" }]}>
+                  <MaterialCommunityIcons name="lock-outline" size={20} color={colors.error} />
+                </View>
+                <View style={styles.statInfo}>
+                  <Text style={styles.statValue}>{blockedCount}</Text>
+                  <Text style={styles.statLabel}>Bị khóa</Text>
+                </View>
+              </View>
+            </View>
 
-      {/* List */}
-      {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.dark} />
-          <Text style={styles.loadingText}>Đang tải danh sách...</Text>
-        </View>
-      ) : users.length === 0 ? (
-        <View style={styles.centered}>
-          <MaterialCommunityIcons name="account-off" size={60} color="#D1D5DB" />
-          <Text style={styles.emptyText}>Không có người dùng nào</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={users}
-          keyExtractor={(item) => item._id}
-          renderItem={({ item }) => (
-            <UserCard user={item} onAction={handleUserAction} />
-          )}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.dark} />
-          }
-        />
-      )}
+            {/* Search & Filter Section */}
+            <View style={[styles.searchFilterRow, !isDesktop && styles.searchFilterRowMobile]}>
+              {/* Search Input with Focus Ring */}
+              <View style={[styles.searchContainer, searchFocused && styles.searchContainerFocused]}>
+                <MaterialCommunityIcons
+                  name="magnify"
+                  size={20}
+                  color={searchFocused ? colors.primary : colors.textMuted}
+                  style={{ marginRight: 8 }}
+                />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Tìm theo tên hoặc email..."
+                  placeholderTextColor={colors.textMuted}
+                  value={search}
+                  onChangeText={setSearch}
+                  autoCapitalize="none"
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setSearchFocused(false)}
+                />
+                {search.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearch("")}>
+                    <MaterialCommunityIcons name="close-circle" size={18} color={colors.textMuted} />
+                  </TouchableOpacity>
+                )}
+              </View>
 
-      {/* ── Custom Action Modal (Web-style popup card) ── */}
+              {/* Filter tabs */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.filterScroll}
+                contentContainerStyle={styles.filterContainer}
+              >
+                {FILTER_TABS.map((tab) => {
+                  const isActive = filterTab === tab.key;
+                  return (
+                    <TouchableOpacity
+                      key={tab.key}
+                      style={[styles.filterTab, isActive && styles.filterTabActive]}
+                      onPress={() => setFilterTab(tab.key)}
+                    >
+                      <Text style={[styles.filterTabText, isActive && styles.filterTabTextActive]}>
+                        {getTabLabel(tab.key, tab.label)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </View>
+        }
+        ListEmptyComponent={
+          loading ? (
+            <View style={styles.centered}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.loadingText}>Đang tải danh sách...</Text>
+            </View>
+          ) : (
+            <View style={styles.centered}>
+              <MaterialCommunityIcons name="account-off" size={60} color={colors.textLight} />
+              <Text style={styles.emptyText}>Không có người dùng nào</Text>
+            </View>
+          )
+        }
+      />
+
+      {/* ── Custom Action Modal (Sleek popup card) ── */}
       <Modal
         visible={showActionModal}
         transparent={true}
@@ -362,8 +461,7 @@ export default function AdminUsersScreen() {
                   style={[
                     styles.popupAvatar,
                     {
-                      backgroundColor:
-                        ROLE_CONFIG[selectedUserForModal.role]?.bg || ROLE_CONFIG.user.bg,
+                      backgroundColor: getAvatarColors(selectedUserForModal.fullName).bg,
                     },
                   ]}
                 >
@@ -371,8 +469,7 @@ export default function AdminUsersScreen() {
                     style={[
                       styles.popupAvatarText,
                       {
-                        color:
-                          ROLE_CONFIG[selectedUserForModal.role]?.color || ROLE_CONFIG.user.color,
+                        color: getAvatarColors(selectedUserForModal.fullName).text,
                       },
                     ]}
                   >
@@ -384,48 +481,39 @@ export default function AdminUsersScreen() {
                       .toUpperCase()}
                   </Text>
                 </View>
-                <Text style={styles.popupTitle}>{selectedUserForModal.fullName}</Text>
-                <Text style={styles.popupSubTitle}>{selectedUserForModal.email}</Text>
-
+                <Text style={styles.popupTitle} numberOfLines={1}>
+                  {selectedUserForModal.fullName}
+                </Text>
+                <Text style={styles.popupSubTitle} numberOfLines={1}>
+                  {selectedUserForModal.email}
+                </Text>
                 <View style={styles.popupBadges}>
                   <View
                     style={[
                       styles.badge,
                       {
                         backgroundColor:
-                          ROLE_CONFIG[selectedUserForModal.role]?.bg || ROLE_CONFIG.user.bg,
+                          (ROLE_CONFIG[selectedUserForModal.role] || ROLE_CONFIG.user).bg,
                       },
                     ]}
                   >
-                    <MaterialCommunityIcons
-                      name={
-                        (ROLE_CONFIG[selectedUserForModal.role]?.icon ||
-                          ROLE_CONFIG.user.icon) as any
-                      }
-                      size={11}
-                      color={
-                        ROLE_CONFIG[selectedUserForModal.role]?.color || ROLE_CONFIG.user.color
-                      }
-                    />
                     <Text
                       style={[
                         styles.badgeText,
                         {
-                          color:
-                            ROLE_CONFIG[selectedUserForModal.role]?.color || ROLE_CONFIG.user.color,
+                          color: (ROLE_CONFIG[selectedUserForModal.role] || ROLE_CONFIG.user).color,
                         },
                       ]}
                     >
-                      {ROLE_CONFIG[selectedUserForModal.role]?.label || selectedUserForModal.role}
+                      {(ROLE_CONFIG[selectedUserForModal.role] || ROLE_CONFIG.user).label}
                     </Text>
                   </View>
-
                   <View
                     style={[
                       styles.badge,
                       {
                         backgroundColor:
-                          STATUS_CONFIG[selectedUserForModal.status]?.bg || STATUS_CONFIG.active.bg,
+                          (STATUS_CONFIG[selectedUserForModal.status] || STATUS_CONFIG.active).bg,
                       },
                     ]}
                   >
@@ -433,14 +521,13 @@ export default function AdminUsersScreen() {
                       style={[
                         styles.badgeText,
                         {
-                          color:
-                            STATUS_CONFIG[selectedUserForModal.status]?.color ||
-                            STATUS_CONFIG.active.color,
+                          color: (
+                            STATUS_CONFIG[selectedUserForModal.status] || STATUS_CONFIG.active
+                          ).color,
                         },
                       ]}
                     >
-                      {STATUS_CONFIG[selectedUserForModal.status]?.label ||
-                        selectedUserForModal.status}
+                      {(STATUS_CONFIG[selectedUserForModal.status] || STATUS_CONFIG.active).label}
                     </Text>
                   </View>
                 </View>
@@ -448,61 +535,111 @@ export default function AdminUsersScreen() {
 
               <View style={styles.popupSeparator} />
 
-              {/* Actions */}
-              {/* 1. Khóa / Mở khóa */}
-              {selectedUserForModal.status === "blocked" ? (
+              {/* Action Buttons */}
+              {selectedUserForModal.role !== "admin" ? (
                 <TouchableOpacity
                   style={styles.popupActionBtn}
-                  onPress={() => confirmStatusChange(selectedUserForModal, "active")}
+                  onPress={() =>
+                    openConfirmChange(
+                      "role",
+                      "admin",
+                      "Cấp quyền Admin",
+                      `Bạn có chắc chắn muốn nâng quyền của ${selectedUserForModal.fullName} lên làm Quản trị viên không?`
+                    )
+                  }
                 >
-                  <MaterialCommunityIcons name="lock-open-outline" size={20} color="#059669" />
-                  <Text style={[styles.popupActionBtnText, { color: "#059669" }]}>
-                    Mở khóa tài khoản
+                  <MaterialCommunityIcons
+                    name="shield-crown-outline"
+                    size={20}
+                    color={colors.primary}
+                  />
+                  <Text style={[styles.popupActionBtnText, { color: colors.primary }]}>
+                    Nâng lên Admin
                   </Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
                   style={styles.popupActionBtn}
-                  onPress={() => confirmStatusChange(selectedUserForModal, "blocked")}
+                  onPress={() =>
+                    openConfirmChange(
+                      "role",
+                      "user",
+                      "Hạ quyền xuống User",
+                      `Bạn có chắc chắn muốn hạ quyền Quản trị viên của ${selectedUserForModal.fullName} xuống Người dùng thông thường?`
+                    )
+                  }
                 >
-                  <MaterialCommunityIcons name="lock-outline" size={20} color="#DC2626" />
-                  <Text style={[styles.popupActionBtnText, { color: "#DC2626" }]}>
+                  <MaterialCommunityIcons name="account-outline" size={20} color={colors.teal} />
+                  <Text style={[styles.popupActionBtnText, { color: colors.teal }]}>
+                    Hạ xuống User
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {selectedUserForModal.role !== "event_organizer" && (
+                <TouchableOpacity
+                  style={styles.popupActionBtn}
+                  onPress={() =>
+                    openConfirmChange(
+                      "role",
+                      "event_organizer",
+                      "Cấp quyền Organizer",
+                      `Bạn có chắc chắn muốn phân quyền cho ${selectedUserForModal.fullName} làm Ban tổ chức sự kiện không?`
+                    )
+                  }
+                >
+                  <MaterialCommunityIcons name="calendar-star" size={20} color="#D97706" />
+                  <Text style={[styles.popupActionBtnText, { color: "#D97706" }]}>
+                    Cấp quyền Organizer
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {selectedUserForModal.status !== "blocked" ? (
+                <TouchableOpacity
+                  style={[styles.popupActionBtn, { borderColor: colors.error }]}
+                  onPress={() =>
+                    openConfirmChange(
+                      "status",
+                      "blocked",
+                      "Khóa tài khoản",
+                      `Bạn có chắc chắn muốn KHOÁ tài khoản của ${selectedUserForModal.fullName}? Người dùng này sẽ không thể đăng nhập hệ thống.`
+                    )
+                  }
+                >
+                  <MaterialCommunityIcons name="lock-outline" size={20} color={colors.error} />
+                  <Text style={[styles.popupActionBtnText, { color: colors.error }]}>
                     Khóa tài khoản
                   </Text>
                 </TouchableOpacity>
-              )}
-
-              {/* 2. Gán / Thu hồi Organizer */}
-              {selectedUserForModal.role === "event_organizer" ? (
+              ) : (
                 <TouchableOpacity
-                  style={styles.popupActionBtn}
-                  onPress={() => confirmRoleChange(selectedUserForModal, "user")}
+                  style={[styles.popupActionBtn, { borderColor: colors.success }]}
+                  onPress={() =>
+                    openConfirmChange(
+                      "status",
+                      "active",
+                      "Mở khóa tài khoản",
+                      `Mở khoá tài khoản cho ${selectedUserForModal.fullName}? Người dùng sẽ hoạt động bình thường trở lại.`
+                    )
+                  }
                 >
-                  <MaterialCommunityIcons name="account-minus-outline" size={20} color="#D97706" />
-                  <Text style={[styles.popupActionBtnText, { color: "#D97706" }]}>
-                    Thu hồi quyền Organizer
+                  <MaterialCommunityIcons
+                    name="lock-open-outline"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={[styles.popupActionBtnText, { color: colors.success }]}>
+                    Mở khóa tài khoản
                   </Text>
                 </TouchableOpacity>
-              ) : (
-                selectedUserForModal.role !== "admin" && (
-                  <TouchableOpacity
-                    style={styles.popupActionBtn}
-                    onPress={() => confirmRoleChange(selectedUserForModal, "event_organizer")}
-                  >
-                    <MaterialCommunityIcons name="calendar-plus" size={20} color="#006B5C" />
-                    <Text style={[styles.popupActionBtnText, { color: "#006B5C" }]}>
-                      Gán quyền Event Organizer
-                    </Text>
-                  </TouchableOpacity>
-                )
               )}
 
-              {/* Cancel Button */}
               <TouchableOpacity
                 style={styles.popupCancelBtn}
                 onPress={() => setShowActionModal(false)}
               >
-                <Text style={styles.popupCancelBtnText}>Hủy</Text>
+                <Text style={styles.popupCancelBtnText}>Đóng</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -522,13 +659,28 @@ export default function AdminUsersScreen() {
               <View
                 style={[
                   styles.confirmIcon,
-                  { backgroundColor: confirmConfig.isDestructive ? "#FEE2E2" : "#E2F2ED" },
+                  {
+                    backgroundColor:
+                      confirmConfig.targetValue === "blocked" ||
+                      confirmConfig.targetValue === "user"
+                        ? colors.errorBg
+                        : colors.successBg,
+                  },
                 ]}
               >
                 <MaterialCommunityIcons
-                  name={confirmConfig.isDestructive ? "alert-circle-outline" : "help-circle-outline"}
+                  name={
+                    confirmConfig.targetValue === "blocked"
+                      ? "alert-circle-outline"
+                      : "help-circle-outline"
+                  }
                   size={36}
-                  color={confirmConfig.isDestructive ? "#DC2626" : "#006B5C"}
+                  color={
+                    confirmConfig.targetValue === "blocked" ||
+                    confirmConfig.targetValue === "user"
+                      ? colors.error
+                      : colors.success
+                  }
                 />
               </View>
 
@@ -540,12 +692,19 @@ export default function AdminUsersScreen() {
                   style={styles.confirmBtnLeft}
                   onPress={() => setShowConfirmModal(false)}
                 >
-                  <Text style={[styles.confirmBtnText, { color: "#64748B" }]}>Hủy</Text>
+                  <Text style={[styles.confirmBtnText, { color: colors.textSecondary }]}>Hủy</Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity
                   style={[
                     styles.confirmBtnRight,
-                    { backgroundColor: confirmConfig.isDestructive ? "#DC2626" : "#006B5C" },
+                    {
+                      backgroundColor:
+                        confirmConfig.targetValue === "blocked" ||
+                        confirmConfig.targetValue === "user"
+                          ? colors.error
+                          : colors.primary,
+                    },
                   ]}
                   onPress={confirmConfig.onConfirm}
                 >
@@ -560,172 +719,244 @@ export default function AdminUsersScreen() {
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────────
+// ── Stylesheet ──────────────────────────────────────────────────
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F8FAFB",
+    backgroundColor: colors.bg,
   },
   loadingOverlay: {
-    position: "absolute",
-    inset: 0,
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255,255,255,0.7)",
     zIndex: 99,
-    backgroundColor: "rgba(0,0,0,0.2)",
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
   },
-  header: {
+  headerShell: {
+    paddingTop: 52,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerContent: {
+    width: "100%",
+    maxWidth: 1280,
+    alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 8,
+    gap: 12,
   },
-  backBtn: {
+  backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.25)",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+  },
+  headerCopy: {
+    flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.dark,
-    fontFamily: "Georgia",
+    fontSize: 26,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    fontFamily: displayFont,
+    letterSpacing: 0.5,
   },
-  statsRow: {
+  headerSubtitle: {
+    fontSize: 13,
+    color: "rgba(255, 255, 255, 0.8)",
+    marginTop: 3,
+    fontFamily: webFont,
+    fontWeight: "500",
+  },
+  listHeader: {
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  listContent: {
+    width: "100%",
+    maxWidth: 1280,
+    alignSelf: "center",
+    paddingHorizontal: 14,
+    paddingBottom: 40,
+  },
+  statsContainer: {
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    marginHorizontal: 20,
-    marginVertical: 10,
-    borderRadius: 16,
-    paddingVertical: 14,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    paddingHorizontal: 6,
+    gap: 12,
+    marginBottom: 16,
   },
-  statItem: {
+  statCard: {
     flex: 1,
+    flexDirection: "row",
     alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...Platform.select({
+      web: { boxShadow: "0 4px 20px rgba(109, 93, 251, 0.02)" },
+      ios: { shadowColor: colors.primary, shadowOpacity: 0.02, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+      android: { elevation: 2 },
+    }),
   },
-  statNumber: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: colors.dark,
+  statIconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  statInfo: {
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: colors.textPrimary,
+    fontFamily: displayFont,
   },
   statLabel: {
     fontSize: 11,
-    color: "#6B7280",
-    marginTop: 2,
+    color: colors.textSecondary,
+    fontWeight: "600",
+    marginTop: 1,
+    fontFamily: webFont,
   },
-  statDivider: {
-    width: 1,
-    backgroundColor: "#E5E7EB",
-    marginVertical: 4,
+  searchFilterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 6,
+    marginBottom: 16,
+    gap: 16,
+  },
+  searchFilterRowMobile: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: 12,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    marginHorizontal: 20,
-    marginBottom: 10,
+    backgroundColor: colors.surface,
     borderRadius: 14,
     paddingHorizontal: 14,
     height: 46,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: colors.border,
+    flex: 1,
+  },
+  searchContainerFocused: {
+    borderColor: colors.primary,
+    ...Platform.select({
+      web: { boxShadow: "0 0 0 3px rgba(109, 93, 251, 0.15)" },
+    }),
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: colors.dark,
+    color: colors.textPrimary,
+    fontWeight: "500",
+    fontFamily: webFont,
   },
   filterScroll: {
-    maxHeight: 48,
-    marginBottom: 8,
+    flexGrow: 0,
   },
   filterContainer: {
-    paddingHorizontal: 20,
     gap: 8,
+    alignItems: "center",
+    paddingVertical: 2,
   },
   filterTab: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: colors.border,
   },
   filterTabActive: {
-    backgroundColor: colors.dark,
-    borderColor: colors.dark,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   filterTabText: {
     fontSize: 13,
-    fontWeight: "600",
-    color: "#6B7280",
+    fontWeight: "700",
+    color: colors.textSecondary,
+    fontFamily: webFont,
   },
   filterTabTextActive: {
     color: "#FFFFFF",
   },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    gap: 10,
+  cardCell: {
+    flex: 1,
+    padding: 6,
   },
   userCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 14,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...Platform.select({
+      web: { boxShadow: "0 4px 16px rgba(15, 23, 42, 0.02)" },
+      ios: { shadowColor: colors.primary, shadowOpacity: 0.02, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+      android: { elevation: 2 },
+    }),
   },
   avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
   avatarText: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "800",
+    fontFamily: displayFont,
   },
   userInfo: {
     flex: 1,
-    gap: 3,
+    gap: 4,
   },
   userName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
-    color: colors.dark,
+    color: colors.textPrimary,
+    fontFamily: displayFont,
+  },
+  emailRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   userEmail: {
     fontSize: 12,
-    color: "#6B7280",
+    color: colors.textSecondary,
+    fontWeight: "500",
+    fontFamily: webFont,
   },
   badgeRow: {
     flexDirection: "row",
     gap: 6,
     marginTop: 4,
+    flexWrap: "wrap",
   },
   badge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
+    gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 20,
@@ -733,23 +964,53 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 10,
     fontWeight: "700",
+    fontFamily: webFont,
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 20,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 5,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: "700",
+    fontFamily: webFont,
+  },
+  menuTrigger: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
   centered: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 80,
     gap: 12,
   },
   loadingText: {
     fontSize: 14,
-    color: "#9CA3AF",
+    color: colors.textSecondary,
+    fontWeight: "500",
+    fontFamily: webFont,
   },
   emptyText: {
     fontSize: 15,
-    color: "#9CA3AF",
-    fontWeight: "500",
+    color: colors.textSecondary,
+    fontWeight: "600",
+    fontFamily: webFont,
   },
-  // Custom Alert Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(15, 23, 42, 0.4)",
@@ -758,18 +1019,18 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   popupCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 24,
     width: "100%",
     maxWidth: 340,
     padding: 24,
-    shadowColor: "#006B5C",
+    shadowColor: colors.primary,
     shadowOpacity: 0.12,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 8 },
     elevation: 8,
     borderWidth: 1,
-    borderColor: "#E2F2ED",
+    borderColor: colors.border,
   },
   popupHeader: {
     alignItems: "center",
@@ -778,26 +1039,30 @@ const styles = StyleSheet.create({
   popupAvatar: {
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
   },
   popupAvatarText: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: "800",
+    fontFamily: displayFont,
   },
   popupTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#004C43",
+    color: colors.textPrimary,
     textAlign: "center",
     marginBottom: 4,
+    fontFamily: displayFont,
   },
   popupSubTitle: {
     fontSize: 13,
-    color: "#64748B",
+    color: colors.textSecondary,
     textAlign: "center",
+    fontWeight: "500",
+    fontFamily: webFont,
   },
   popupBadges: {
     flexDirection: "row",
@@ -806,7 +1071,7 @@ const styles = StyleSheet.create({
   },
   popupSeparator: {
     height: 1,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.border,
     width: "100%",
     marginBottom: 16,
   },
@@ -818,20 +1083,20 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#E2F2ED",
-    backgroundColor: "#F8FAFB",
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
     width: "100%",
     marginBottom: 10,
   },
   popupActionBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#004C43",
+    fontFamily: webFont,
   },
   popupCancelBtn: {
     height: 48,
     borderRadius: 14,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.bgAlt,
     alignItems: "center",
     justifyContent: "center",
     width: "100%",
@@ -840,9 +1105,9 @@ const styles = StyleSheet.create({
   popupCancelBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#64748B",
+    color: colors.textSecondary,
+    fontFamily: webFont,
   },
-  // Confirm Popup Styles
   confirmIcon: {
     alignSelf: "center",
     width: 64,
@@ -855,16 +1120,19 @@ const styles = StyleSheet.create({
   confirmTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#0F172A",
+    color: colors.textPrimary,
     textAlign: "center",
     marginBottom: 8,
+    fontFamily: displayFont,
   },
   confirmMessage: {
     fontSize: 14,
-    color: "#475569",
+    color: colors.textSecondary,
     textAlign: "center",
     lineHeight: 20,
     marginBottom: 20,
+    fontWeight: "500",
+    fontFamily: webFont,
   },
   confirmButtons: {
     flexDirection: "row",
@@ -875,7 +1143,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 46,
     borderRadius: 12,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.bgAlt,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -889,5 +1157,6 @@ const styles = StyleSheet.create({
   confirmBtnText: {
     fontSize: 14,
     fontWeight: "700",
+    fontFamily: webFont,
   },
 });

@@ -7,6 +7,7 @@ const { getEffectiveEventStatus } = require("../utils/eventLifecycle");
 const {
   getRatingSummary,
 } = require("../services/eventRatingService");
+const { notifyActiveAdmins } = require("../services/notificationService");
 
 const HIDDEN_REASONS = ["spam", "offensive", "advertisement", "other"];
 const SORTS = {
@@ -77,6 +78,18 @@ const ensureCanRate = async (eventId, userId) => {
   return { event };
 };
 
+const notifyLowRating = async ({ ratingDocument, event }) => {
+  if (ratingDocument.rating > 2) return;
+
+  await notifyActiveAdmins({
+    type: "rating_alert",
+    title: "Sự kiện nhận đánh giá thấp",
+    content: `“${event.title}” nhận ${ratingDocument.rating}/5 sao. Mở phản hồi để xem nội dung.`,
+    related: { type: "event_rating", id: ratingDocument._id },
+    dedupeKey: `low-event-rating:${ratingDocument._id}`,
+  });
+};
+
 const submitRating = async (req, res) => {
   try {
     const validation = validateRatingPayload(req.body);
@@ -97,6 +110,8 @@ const submitRating = async (req, res) => {
       userId: req.user._id,
       ...validation.value,
     });
+
+    await notifyLowRating({ ratingDocument: rating, event: eligibility.event });
 
     return res.status(201).json({
       success: true,
@@ -131,17 +146,27 @@ const updateMyRating = async (req, res) => {
       });
     }
 
-    const rating = await EventRating.findOneAndUpdate(
-      { eventId: eligibility.event._id, userId: req.user._id },
-      { $set: validation.value },
-      { returnDocument: "after", runValidators: true }
-    );
+    const existingRating = await EventRating.findOne({
+      eventId: eligibility.event._id,
+      userId: req.user._id,
+    }).select("rating");
 
-    if (!rating) {
+    if (!existingRating) {
       return res.status(404).json({
         success: false,
         message: "You have not reviewed this event yet",
       });
+    }
+
+    const previousRating = existingRating.rating;
+    const rating = await EventRating.findByIdAndUpdate(
+      existingRating._id,
+      { $set: validation.value },
+      { returnDocument: "after", runValidators: true }
+    );
+
+    if (previousRating > 2 && rating.rating <= 2) {
+      await notifyLowRating({ ratingDocument: rating, event: eligibility.event });
     }
 
     return res.status(200).json({

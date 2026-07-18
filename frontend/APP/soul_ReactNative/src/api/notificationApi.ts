@@ -11,6 +11,14 @@ async function authHeaders() {
   };
 }
 
+async function readResponse(res: Response) {
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(json?.message || "Không thể xử lý thông báo");
+  }
+  return json;
+}
+
 export type AppNotification = {
   _id: string;
   userId: string;
@@ -33,9 +41,7 @@ export async function getNotifications(page = 1, limit = 20): Promise<Notificati
   const res = await fetch(`${BASE}?page=${page}&limit=${limit}`, {
     headers: await authHeaders(),
   });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json?.message || "Failed to fetch notifications");
-  return json;
+  return readResponse(res);
 }
 
 export async function getUnreadCount(): Promise<number> {
@@ -48,15 +54,17 @@ export async function getUnreadCount(): Promise<number> {
 }
 
 export async function markAsRead(id: string): Promise<void> {
-  await fetch(`${BASE}/${id}/read`, {
+  const res = await fetch(`${BASE}/${id}/read`, {
     method: "PATCH",
     headers: await authHeaders(),
   });
+  await readResponse(res);
 }
 
 export async function markAllRead(): Promise<void> {
-  await fetch(`${BASE}/read-all`, {
+  const res = await fetch(`${BASE}/read-all`, {
     method: "PATCH",
     headers: await authHeaders(),
   });
+  await readResponse(res);
 }

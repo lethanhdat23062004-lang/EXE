@@ -14,10 +14,15 @@ const notificationSchema = new mongoose.Schema(
         "event_reminder",
         "event_registration",
         "mental_insight",
+        "emotional_test_reminder",
         "safety_alert",
         "report_update",
         "moderation_review",
         "appeal_update",
+        "appeal_review",
+        "rating_alert",
+        "event_capacity_alert",
+        "attendance_overdue",
         "positive_support_request",
         "friend_suggestion",
         "friend_request",
@@ -59,6 +64,13 @@ const notificationSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    // Internal idempotency key. It is intentionally excluded from API results.
+    dedupeKey: {
+      type: String,
+      trim: true,
+      select: false,
+    },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
@@ -69,5 +81,12 @@ notificationSchema.index({ userId: 1 });
 notificationSchema.index({ userId: 1, isRead: 1 });
 notificationSchema.index({ type: 1 });
 notificationSchema.index({ createdAt: -1 });
+notificationSchema.index(
+  { userId: 1, dedupeKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { dedupeKey: { $type: "string" } },
+  }
+);
 
 module.exports = mongoose.model("Notification", notificationSchema);

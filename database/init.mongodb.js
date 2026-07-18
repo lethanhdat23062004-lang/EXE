@@ -1180,7 +1180,6 @@ db.createCollection("reports", {
       required: [
         "targetType",
         "targetId",
-        "reporterId",
         "reportedUserId",
         "reason",
         "status",
@@ -1196,7 +1195,11 @@ db.createCollection("reports", {
         },
 
         reporterId: {
-          bsonType: "objectId"
+          bsonType: ["objectId", "null"]
+        },
+
+        reportSource: {
+          enum: ["user", "system_ai"]
         },
 
         reportedUserId: {
@@ -1212,7 +1215,30 @@ db.createCollection("reports", {
         },
 
         status: {
-          enum: ["pending", "dismissed", "action_taken"]
+          enum: [
+            "pending",
+            "dismissed",
+            "action_taken",
+            "appeal_pending",
+            "appeal_accepted",
+            "appeal_rejected"
+          ]
+        },
+
+        appealReason: {
+          bsonType: ["string", "null"]
+        },
+
+        appealRequestedAt: {
+          bsonType: ["date", "null"]
+        },
+
+        appealResolvedAt: {
+          bsonType: ["date", "null"]
+        },
+
+        appealNote: {
+          bsonType: ["string", "null"]
         },
 
         createdAt: {
@@ -1230,11 +1256,25 @@ db.createCollection("reports", {
 db.reports.createIndex({ targetType: 1, targetId: 1 });
 db.reports.createIndex({ reporterId: 1 });
 db.reports.createIndex({ reportedUserId: 1 });
+db.reports.createIndex({ reportSource: 1 });
 db.reports.createIndex({ status: 1 });
 db.reports.createIndex({ createdAt: -1 });
 db.reports.createIndex(
   { targetType: 1, targetId: 1, reporterId: 1 },
-  { unique: true }
+  {
+    unique: true,
+    partialFilterExpression: {
+      reportSource: "user",
+      reporterId: { $type: "objectId" }
+    }
+  }
+);
+db.reports.createIndex(
+  { targetType: 1, targetId: 1, reportSource: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { reportSource: "system_ai" }
+  }
 );
 
 // =========================================
@@ -1271,7 +1311,10 @@ db.createCollection("moderation_logs", {
             "warn_user",
             "block_user",
             "resolve_report",
-            "reject_report"
+            "reject_report",
+            "appeal_requested",
+            "appeal_accepted",
+            "appeal_rejected"
           ]
         },
 
@@ -1391,6 +1434,30 @@ db.createCollection("events", {
           enum: ["upcoming", "ongoing", "completed", "cancelled"]
         },
 
+        isArchived: {
+          bsonType: "bool"
+        },
+
+        archivedAt: {
+          bsonType: ["date", "null"]
+        },
+
+        archivedBy: {
+          bsonType: ["objectId", "null"]
+        },
+
+        cancellationReason: {
+          bsonType: ["string", "null"]
+        },
+
+        cancelledAt: {
+          bsonType: ["date", "null"]
+        },
+
+        cancelledBy: {
+          bsonType: ["objectId", "null"]
+        },
+
         approvalStatus: {
           enum: ["pending", "approved", "rejected", null]
         },
@@ -1431,6 +1498,7 @@ db.events.createIndex({ status: 1 });
 db.events.createIndex({ startDateTime: 1 });
 db.events.createIndex({ createdBy: 1 });
 db.events.createIndex({ approvalStatus: 1 });
+db.events.createIndex({ isArchived: 1, startDateTime: -1 });
 
 // =========================================
 // EVENT REGISTRATIONS & ATTENDANCE
@@ -1684,13 +1752,20 @@ db.createCollection("notifications", {
         type: {
           enum: [
             "event_reminder",
+            "event_registration",
             "mental_insight",
+            "emotional_test_reminder",
             "safety_alert",
             "report_update",
-            "emotional_test_reminder",
+            "moderation_review",
+            "appeal_update",
+            "appeal_review",
+            "rating_alert",
+            "event_capacity_alert",
             "positive_support_request",
             "friend_suggestion",
             "friend_request",
+            "welcome",
             "system"
           ]
         },
@@ -1724,6 +1799,10 @@ db.createCollection("notifications", {
           bsonType: ["date", "null"]
         },
 
+        dedupeKey: {
+          bsonType: "string"
+        },
+
         createdAt: {
           bsonType: "date"
         }
@@ -1736,5 +1815,12 @@ db.notifications.createIndex({ userId: 1 });
 db.notifications.createIndex({ userId: 1, isRead: 1 });
 db.notifications.createIndex({ type: 1 });
 db.notifications.createIndex({ createdAt: -1 });
+db.notifications.createIndex(
+  { userId: 1, dedupeKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { dedupeKey: { $type: "string" } }
+  }
+);
 
 print("SOUL MongoDB database initialized successfully.");

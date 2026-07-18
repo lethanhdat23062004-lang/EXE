@@ -75,6 +75,34 @@ const eventSchema = new mongoose.Schema(
       enum: ["upcoming", "ongoing", "completed", "cancelled"],
       default: "upcoming",
     },
+    isArchived: {
+      type: Boolean,
+      default: false,
+    },
+    archivedAt: {
+      type: Date,
+      default: null,
+    },
+    archivedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    cancellationReason: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: null,
+    },
+    cancelledAt: {
+      type: Date,
+      default: null,
+    },
+    cancelledBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -90,6 +118,7 @@ const eventSchema = new mongoose.Schema(
 eventSchema.index({ status: 1 });
 eventSchema.index({ startDateTime: 1 });
 eventSchema.index({ createdBy: 1 });
+eventSchema.index({ isArchived: 1, startDateTime: -1 });
 
 const Event = mongoose.model("Event", eventSchema);
 

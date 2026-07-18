@@ -25,9 +25,24 @@ var server = http.createServer(app);
  * Listen on provided port, on all network interfaces.
  */
 
-server.listen(port, "0.0.0.0");
 server.on("error", onError);
 server.on("listening", onListening);
+
+startServer();
+
+async function startServer() {
+  try {
+    await app.locals.dbReady;
+    const {
+      startAttendanceOverdueWorker,
+    } = require("../src/services/attendanceOverdueService");
+    startAttendanceOverdueWorker();
+    server.listen(port, "0.0.0.0");
+  } catch (error) {
+    console.error("Server startup error:", error.message);
+    process.exit(1);
+  }
+}
 
 /**
  * Normalize a port into a number, string, or false.

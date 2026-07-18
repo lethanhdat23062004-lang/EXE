@@ -8,6 +8,7 @@ const EventRegistration = require("../models/EventRegistration");
 const EventAttendanceAudit = require("../models/EventAttendanceAudit");
 const controller = require("../controllers/eventRatingController");
 const eventController = require("../controllers/eventController");
+const { getTestDatabaseUri } = require("./testDatabase");
 
 const mockResponse = () => ({
   statusCode: 200,
@@ -28,8 +29,7 @@ const run = async () => {
   let eventId = null;
 
   try {
-    assert.ok(process.env.MONGODB_URI, "MONGODB_URI is required for integration tests");
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(getTestDatabaseUri());
 
     const [admin, attendee, registeredOnly] = await User.create([
       { fullName: "Rating Test Admin", email: `${marker}-admin@soul.test`, passwordHash: "test", role: "admin" },

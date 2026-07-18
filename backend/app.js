@@ -28,7 +28,22 @@ const notificationRoutes = require("./src/routes/notificationRoutes");
 
 const app = express();
 
-connectDB();
+const dbReady = connectDB();
+app.locals.dbReady = dbReady;
+
+// Do not serve API requests until database validators and indexes are ready.
+// This also protects serverless runtimes that import app.js without bin/www.
+app.use(async (req, res, next) => {
+  try {
+    await dbReady;
+    next();
+  } catch (_error) {
+    res.status(503).json({
+      success: false,
+      message: "Database is not ready. Please try again shortly.",
+    });
+  }
+});
 
 const allowedOrigins = [
   process.env.CLIENT_URL,

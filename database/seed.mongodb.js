@@ -1019,6 +1019,7 @@ db.reports.insertOne({
   targetType: "post",
   targetId: post1Id,
   reporterId: user2Id,
+  reportSource: "user",
   reportedUserId: user1Id,
   reason: "Sensitive content",
   description: "Post may contain emotional distress.",

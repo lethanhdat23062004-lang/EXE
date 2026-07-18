@@ -8,7 +8,11 @@
     "test:rating-model": "node ./src/tests/testEventRatingModel.js",
     "test:registration-model": "node ./src/tests/testEventRegistrationModel.js",
     "test:registration-integration": "node ./src/tests/testEventRegistrationIntegration.js",
-    "test:rating-integration": "node ./src/tests/testEventRatingIntegration.js"
+    "test:rating-integration": "node ./src/tests/testEventRatingIntegration.js",
+    "test:admin-notifications": "node ./src/tests/testAdminNotificationIntegration.js",
+    "test:event-archive": "node ./src/tests/testEventArchiveIntegration.js",
+    "test:admin-dashboard": "node ./src/tests/testAdminDashboardIntegration.js",
+    "cleanup:admin-notifications": "node ./src/scripts/cleanupAdminNotificationNoise.js"
   },
   "engines": {
     "node": "22.x"

@@ -1,6 +1,170 @@
 const Report = require("../models/Report");
-const User = require("../models/User");
-const Notification = require("../models/Notification");
+const ModerationLog = require("../models/ModerationLog");
+const { notifyActiveAdmins } = require("./notificationService");
+
+async function ensureForumModerationStorage() {
+  const db = Report.db.db;
+  if (!db) throw new Error("MongoDB is not connected");
+
+  let [reportInfo] = await db
+    .listCollections({ name: Report.collection.collectionName })
+    .toArray();
+  if (!reportInfo) {
+    await Report.createCollection();
+    [reportInfo] = await db
+      .listCollections({ name: Report.collection.collectionName })
+      .toArray();
+  }
+
+  if (reportInfo) {
+    const validator = reportInfo.options?.validator || {};
+    const jsonSchema = validator.$jsonSchema || {
+      bsonType: "object",
+      properties: {},
+    };
+    const properties = jsonSchema.properties || {};
+    const required = (jsonSchema.required || []).filter(
+      (field) => field !== "reporterId"
+    );
+    const allowedSources = Report.schema.path("reportSource").enumValues;
+    const allowedStatuses = Report.schema.path("status").enumValues;
+    const currentSources = properties.reportSource?.enum || [];
+    const currentStatuses = properties.status?.enum || [];
+    const reporterTypes = Array.isArray(properties.reporterId?.bsonType)
+      ? properties.reporterId.bsonType
+      : [properties.reporterId?.bsonType].filter(Boolean);
+    const hasAllValues = (current, allowed) =>
+      current.length === allowed.length &&
+      allowed.every((value) => current.includes(value));
+    const reportSchemaIsCurrent =
+      !required.includes("reporterId") &&
+      reporterTypes.includes("objectId") &&
+      reporterTypes.includes("null") &&
+      hasAllValues(currentSources, allowedSources) &&
+      hasAllValues(currentStatuses, allowedStatuses) &&
+      properties.appealReason &&
+      properties.appealRequestedAt &&
+      properties.appealResolvedAt &&
+      properties.appealNote;
+
+    if (!reportSchemaIsCurrent) {
+      const nextJsonSchema = {
+        ...jsonSchema,
+        properties: {
+          ...properties,
+          reporterId: { bsonType: ["objectId", "null"] },
+          reportSource: { enum: allowedSources },
+          status: { enum: allowedStatuses },
+          appealReason: { bsonType: ["string", "null"] },
+          appealRequestedAt: { bsonType: ["date", "null"] },
+          appealResolvedAt: { bsonType: ["date", "null"] },
+          appealNote: { bsonType: ["string", "null"] },
+        },
+      };
+      if (required.length) nextJsonSchema.required = required;
+      else delete nextJsonSchema.required;
+
+      await db.command({
+        collMod: Report.collection.collectionName,
+        validator: {
+          ...validator,
+          $jsonSchema: nextJsonSchema,
+        },
+      });
+    }
+  }
+
+  // Legacy reports predate reportSource. Backfill before replacing the old
+  // non-partial unique index so user reports and AI reports use separate keys.
+  await Report.collection.updateMany(
+    {
+      $and: [
+        {
+          $or: [
+            { reportSource: { $exists: false } },
+            { reportSource: null },
+          ],
+        },
+        { reporterId: { $type: "objectId" } },
+      ],
+    },
+    { $set: { reportSource: "user" } }
+  );
+  await Report.collection.updateMany(
+    {
+      $or: [
+        { reportSource: { $exists: false } },
+        { reportSource: null },
+      ],
+    },
+    { $set: { reportSource: "system_ai" } }
+  );
+
+  const reportIndexes = await Report.collection.indexes();
+  const expectedIndexNames = [
+    "targetType_1_targetId_1_reporterId_1",
+    "targetType_1_targetId_1_reportSource_1",
+  ];
+  for (const indexName of expectedIndexNames) {
+    const existingIndex = reportIndexes.find((index) => index.name === indexName);
+    if (existingIndex && !existingIndex.partialFilterExpression) {
+      await Report.collection.dropIndex(indexName);
+    }
+  }
+
+  await Report.collection.createIndex(
+    { targetType: 1, targetId: 1, reporterId: 1 },
+    {
+      name: "targetType_1_targetId_1_reporterId_1",
+      unique: true,
+      partialFilterExpression: {
+        reportSource: "user",
+        reporterId: { $type: "objectId" },
+      },
+    }
+  );
+  await Report.collection.createIndex(
+    { targetType: 1, targetId: 1, reportSource: 1 },
+    {
+      name: "targetType_1_targetId_1_reportSource_1",
+      unique: true,
+      partialFilterExpression: { reportSource: "system_ai" },
+    }
+  );
+
+  const [logInfo] = await db
+    .listCollections({ name: ModerationLog.collection.collectionName })
+    .toArray();
+  if (logInfo) {
+    const validator = logInfo.options?.validator || {};
+    const jsonSchema = validator.$jsonSchema || {
+      bsonType: "object",
+      properties: {},
+    };
+    const properties = jsonSchema.properties || {};
+    const currentActions = properties.action?.enum || [];
+    const allowedActions = ModerationLog.schema.path("action").enumValues;
+    const actionsAreCurrent =
+      currentActions.length === allowedActions.length &&
+      allowedActions.every((action) => currentActions.includes(action));
+
+    if (!actionsAreCurrent) {
+      await db.command({
+        collMod: ModerationLog.collection.collectionName,
+        validator: {
+          ...validator,
+          $jsonSchema: {
+            ...jsonSchema,
+            properties: {
+              ...properties,
+              action: { ...properties.action, enum: allowedActions },
+            },
+          },
+        },
+      });
+    }
+  }
+}
 
 function normalizeText(text) {
   return String(text || "")
@@ -326,30 +490,16 @@ async function checkForumContentHybrid(content) {
 }
 
 async function notifyAdmins(report) {
-  const admins = await User.find({
-    role: "admin",
-    status: "active",
-  }).select("_id");
-
-  if (!admins.length) {
-    return;
-  }
-
-  const notifications = admins.map((admin) => ({
-    userId: admin._id,
+  return notifyActiveAdmins({
     type: "moderation_review",
-    title: "Có bài viết cần admin xem xét",
-    content:
-      "Hệ thống AI phát hiện một bài viết có dấu hiệu nhạy cảm hoặc vi phạm. Vui lòng kiểm tra report trong trang quản trị.",
+    title: "AI phát hiện nội dung cần xem xét",
+    content: "Một bài viết có dấu hiệu nhạy cảm hoặc vi phạm. Mở báo cáo để kiểm tra.",
     related: {
       type: "report",
       id: report._id,
     },
-    isRead: false,
-    readAt: null,
-  }));
-
-  await Notification.insertMany(notifications);
+    dedupeKey: `ai-moderation-report:${report._id}`,
+  });
 }
 
 async function createSystemReportForPost(post, moderationResult) {
@@ -431,6 +581,7 @@ async function moderatePostAfterCreate(post) {
 }
 
 module.exports = {
+  ensureForumModerationStorage,
   moderatePostAfterCreate,
   checkForumContentHybrid,
   checkForumContentByAI,

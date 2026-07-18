@@ -94,6 +94,11 @@ export const adminRatingService = {
     return response.data;
   },
 
+  getDetail: async (id: string) => {
+    const response = await apiClient.get(`/admin/ratings/${id}`);
+    return response.data;
+  },
+
   hide: async (id: string, reason: string, note?: string) => {
     const response = await apiClient.patch(`/admin/ratings/${id}/hide`, {
       reason,
