@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'action_card.dart';
+import '../components/action_card.dart';
 
 class GridViewCards extends StatelessWidget {
   const GridViewCards({super.key});

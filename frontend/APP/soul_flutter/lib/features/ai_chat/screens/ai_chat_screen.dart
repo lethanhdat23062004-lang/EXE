@@ -85,7 +85,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
   Future<void> _loadSessions() async {
     try {
-      final res = await dio.get('${ApiConfig.chat}/sessions');
+      final res = await dio.get('${ApiConfig.ai}/sessions');
       final list = (res.data['data'] ?? res.data) as List? ?? [];
       setState(() {
         _sessions = list.map((e) => ChatSession.fromJson(e as Map<String, dynamic>)).toList();
@@ -100,7 +100,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
   Future<void> _openSession(ChatSession session) async {
     setState(() { _currentSession = session; _historyOpen = false; });
     try {
-      final res = await dio.get('${ApiConfig.chat}/sessions/${session.id}/messages');
+      final res = await dio.get('${ApiConfig.ai}/sessions/${session.id}/messages');
       final list = (res.data['data'] ?? res.data) as List? ?? [];
       if (list.isEmpty) {
         setState(() => _messages = [_welcomeMessage]);
@@ -121,7 +121,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
   Future<void> _createNewSession() async {
     try {
-      final res = await dio.post('${ApiConfig.chat}/sessions');
+      final res = await dio.post('${ApiConfig.ai}/sessions');
       final data = res.data['data'] ?? res.data;
       final session = ChatSession.fromJson(data as Map<String, dynamic>);
       setState(() {
@@ -148,7 +148,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     try {
       String sessionId = _currentSession?.id ?? '';
       if (sessionId.isEmpty) {
-        final res = await dio.post('${ApiConfig.chat}/sessions');
+        final res = await dio.post('${ApiConfig.ai}/sessions');
         final data = res.data['data'] ?? res.data;
         final session = ChatSession.fromJson(data as Map<String, dynamic>);
         setState(() {
@@ -159,7 +159,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       }
 
       final res = await dio.post(
-        '${ApiConfig.chat}/sessions/$sessionId/messages',
+        '${ApiConfig.ai}/sessions/$sessionId/messages',
         data: {'content': text},
       );
       final reply = res.data['data'] ?? res.data;

@@ -49,7 +49,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   Future<void> _register() async {
     setState(() => _registering = true);
     try {
-      await dio.post('${ApiConfig.userEvents}/${widget.eventId}/register');
+      await dio.post('${ApiConfig.events}/${widget.eventId}/register');
       setState(() { _registered = true; _registering = false; });
       _showSnack('Đăng ký tham dự thành công!', isSuccess: true);
     } on DioException catch (e) {

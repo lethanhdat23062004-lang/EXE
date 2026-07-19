@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../home_colors.dart';
+
 
 class HeroCard extends StatelessWidget {
   const HeroCard({super.key});

@@ -5,7 +5,7 @@ import 'widgets/home_header.dart';
 import 'widgets/hero_card.dart';
 import 'widgets/mood_analytics.dart';
 import 'widgets/quick_actions.dart';
-import 'widgets/weekly_insight.dart';
+import 'components/weekly_insight.dart';
 import 'widgets/community_preview.dart';
 import 'widgets/event_card.dart';
 import 'widgets/safety_note.dart';

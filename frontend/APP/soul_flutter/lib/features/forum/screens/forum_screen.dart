@@ -31,20 +31,62 @@ class ForumPost {
     required this.createdAt,
   });
 
-  factory ForumPost.fromJson(Map<String, dynamic> json) => ForumPost(
-        id: json['_id']?.toString() ?? '',
-        content: json['content']?.toString() ?? '',
-        authorName: json['isAnonymous'] == true
-            ? 'Ẩn danh'
-            : json['author']?['fullName']?.toString() ?? json['authorName']?.toString(),
-        isAnonymous: json['isAnonymous'] == true,
-        mood: json['mood']?.toString(),
-        tags: ((json['tags'] ?? []) as List).map((t) => t.toString()).toList(),
-        reactions: ((json['reactions'] ?? {}) as Map<String, dynamic>)
-            .map((k, v) => MapEntry(k, (v as num).toInt())),
-        commentCount: (json['commentCount'] as num?)?.toInt() ?? 0,
-        createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
-      );
+  factory ForumPost.fromJson(Map<String, dynamic> json) {
+    // Backend field: authorId (populated with fullName)
+    final authorIdObj = json['authorId'];
+    String? authorName;
+    if (json['isAnonymous'] == true) {
+      authorName = json['anonymousName']?.toString() ?? 'Anonymous Soul';
+    } else if (authorIdObj is Map) {
+      authorName = authorIdObj['fullName']?.toString();
+    }
+
+    // Backend field: hashtags (array of strings), NOT tags
+    final hashtagsRaw = json['hashtags'] ?? json['tags'] ?? [];
+    final tags = (hashtagsRaw as List).map((t) => t.toString()).toList();
+
+    // Backend field: emotionStatus (NOT mood)
+    final mood = json['emotionStatus']?.toString() ?? json['mood']?.toString();
+
+    // Backend field: reactions (array of {userId, type} objects)
+    // Count each type to build a map
+    final reactionsRaw = json['reactions'];
+    final Map<String, int> reactionCounts = {};
+    if (reactionsRaw is List) {
+      for (final r in reactionsRaw) {
+        if (r is Map) {
+          final type = r['type']?.toString();
+          if (type != null) {
+            reactionCounts[type] = (reactionCounts[type] ?? 0) + 1;
+          }
+        }
+      }
+    } else if (reactionsRaw is Map) {
+      reactionCounts.addAll(reactionsRaw.map((k, v) => MapEntry(k.toString(), (v as num).toInt())));
+    }
+
+    // Backend field: statistics.commentCount
+    final statisticsRaw = json['statistics'];
+    int commentCount = 0;
+    if (statisticsRaw is Map) {
+      commentCount = (statisticsRaw['commentCount'] as num?)?.toInt() ?? 0;
+    } else {
+      commentCount = (json['commentCount'] as num?)?.toInt() ?? 0;
+    }
+
+    return ForumPost(
+      id: json['_id']?.toString() ?? '',
+      content: json['content']?.toString() ?? '',
+      authorName: authorName,
+      isAnonymous: json['isAnonymous'] == true,
+      mood: mood,
+      tags: tags,
+      reactions: reactionCounts,
+      commentCount: commentCount,
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+    );
+  }
+
 
   String get moodEmoji {
     switch (mood) {
@@ -72,6 +114,7 @@ class ForumScreen extends StatefulWidget {
 class _ForumScreenState extends State<ForumScreen> {
   List<ForumPost> _posts = [];
   bool _loading = true;
+  String? _error;
   bool _showCreateForm = false;
   String _activeFilter = 'all';
   final _filterOptions = ['all', 'stress', 'self-care', 'student-life', 'deadline'];
@@ -83,21 +126,35 @@ class _ForumScreenState extends State<ForumScreen> {
   }
 
   Future<void> _loadPosts() async {
+    setState(() { _loading = true; _error = null; });
     try {
-      final res = await dio.get('${ApiConfig.forum}/posts/approved');
-      final data = (res.data['data'] ?? res.data['posts'] ?? res.data) as List? ?? [];
+      final res = await dio.get(ApiConfig.posts);
+      // Backend returns: { success: true, data: [...] }
+      final rawData = res.data;
+      List<dynamic> data = [];
+      if (rawData is Map) {
+        data = (rawData['data'] ?? rawData['posts'] ?? []) as List? ?? [];
+      } else if (rawData is List) {
+        data = rawData;
+      }
+      if (!mounted) return;
       setState(() {
         _posts = data.map((e) => ForumPost.fromJson(e as Map<String, dynamic>)).toList();
         _loading = false;
       });
-    } catch (_) {
-      setState(() => _loading = false);
+    } catch (e) {
+      debugPrint('[Forum] _loadPosts error: $e');
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.toString();
+      });
     }
   }
 
   Future<void> _react(String postId, String reaction) async {
     try {
-      await dio.post('${ApiConfig.forum}/posts/$postId/react', data: {'reaction': reaction});
+      await dio.post('${ApiConfig.reactions}/posts/$postId', data: {'reaction': reaction});
       _loadPosts();
     } catch (_) {}
   }
@@ -172,18 +229,48 @@ class _ForumScreenState extends State<ForumScreen> {
                 const SliverFillRemaining(
                   child: Center(child: CircularProgressIndicator(color: SoulColors.primary)),
                 )
+              else if (_error != null)
+                SliverFillRemaining(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.wifi_off_rounded, size: 64, color: SoulColors.textFaint),
+                          const SizedBox(height: 16),
+                          const Text('Không thể tải dữ liệu',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: SoulColors.textMuted)),
+                          const SizedBox(height: 6),
+                          const Text('Kiểm tra kết nối backend',
+                            style: TextStyle(fontSize: 13, color: SoulColors.textFaint)),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: _loadPosts,
+                            icon: const Icon(Icons.refresh_rounded),
+                            label: const Text('Thử lại'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: SoulColors.primary,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
               else if (_filteredPosts.isEmpty)
-                const SliverFillRemaining(
+                SliverFillRemaining(
                   child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.forum_outlined, size: 64, color: SoulColors.textFaint),
-                        SizedBox(height: 16),
-                        Text('Chưa có bài viết nào',
+                        const Icon(Icons.forum_outlined, size: 64, color: SoulColors.textFaint),
+                        const SizedBox(height: 16),
+                        const Text('Chưa có bài viết nào',
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: SoulColors.textMuted)),
-                        SizedBox(height: 6),
-                        Text('Hãy là người đầu tiên chia sẻ!',
+                        const SizedBox(height: 6),
+                        const Text('Hãy là người đầu tiên chia sẻ!',
                           style: TextStyle(fontSize: 13, color: SoulColors.textFaint)),
                       ],
                     ),
@@ -400,7 +487,7 @@ class _CreatePostFormState extends State<_CreatePostForm> {
     if (_contentCtrl.text.trim().isEmpty) return;
     setState(() => _posting = true);
     try {
-      await dio.post('${ApiConfig.forum}/posts', data: {
+      await dio.post(ApiConfig.posts, data: {
         'content': _contentCtrl.text.trim(),
         'isAnonymous': _anonymous,
         'mood': _mood,
