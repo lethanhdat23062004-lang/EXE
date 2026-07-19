@@ -24,14 +24,18 @@ class ApiConfig {
 
   // Endpoints
   static const String auth = '/auth';
-  static const String diary = '/diary';
-  static const String forum = '/forum';
+  static const String diaries = '/diaries';
+  static const String diary = '/diaries';
+  static const String posts = '/posts';
+  static const String forum = '/posts';
+  static const String reactions = '/reactions';
   static const String emotionalTest = '/emotional-tests';
   static const String events = '/events';
-  static const String userEvents = '/user-events';
+  static const String userEvents = '/events';
   static const String notifications = '/notifications';
   static const String ratings = '/ratings';
-  static const String chat = '/chat';
+  static const String ai = '/ai';
+  static const String chat = '/ai';
   static const String users = '/users';
 
   // Request timeouts

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../components/section_title.dart';
-import '../components/grid_view_cards.dart';
+import 'grid_view_cards.dart';
 
 class QuickActions extends StatelessWidget {
   const QuickActions({super.key});

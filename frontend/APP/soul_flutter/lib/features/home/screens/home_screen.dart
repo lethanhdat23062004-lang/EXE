@@ -1,21 +1,113 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/constants/colors.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import '../../../core/api/api_client.dart';
+import '../../../core/api/config.dart';
 import '../../auth/providers/auth_provider.dart';
 
-const _quickActions = [
-  _QuickAction(title: 'SOUL AI', desc: 'AI Emotional Companion lắng nghe và phản hồi cảm xúc bằng tiếng Việt.', cta: 'Khám phá ngay', route: '/ai-chat', icon: Icons.chat_bubble_outline_rounded, color: Color(0xFF7C3AED), bg: Color(0xFFF3E8FF)),
-  _QuickAction(title: 'Nhật ký cảm xúc', desc: 'Ghi lại mood, điểm cảm xúc, ghi chú riêng tư và AI insight.', cta: 'Ghi chép', route: '/diary', icon: Icons.book_outlined, color: Color(0xFFA855F7), bg: Color(0xFFF5E8FF)),
-  _QuickAction(title: 'Theo dõi tâm trạng', desc: 'Nhìn lại xu hướng cảm xúc từ các nhật ký đã lưu.', cta: 'Xem thống kê', route: '/diary', icon: Icons.bar_chart_rounded, color: Color(0xFF0F766E), bg: Color(0xFFCCFBF1)),
-  _QuickAction(title: 'Bài test cảm xúc', desc: 'Tự đánh giá bằng WHO-5 Well-being Check và PSS-10 Student Stress Check.', cta: 'Làm bài test', route: '/emotional-test', icon: Icons.assignment_outlined, color: Color(0xFFEF4444), bg: Color(0xFFFEE2E2)),
-  _QuickAction(title: 'Sự kiện & Workshop', desc: 'Đăng ký workshop, talkshow, webinar và gửi rating sau khi được xác nhận.', cta: 'Lịch sự kiện', route: '/events', icon: Icons.event_outlined, color: Color(0xFF7C3AED), bg: Color(0xFFEDE9FE)),
-  _QuickAction(title: 'Cộng đồng an toàn', desc: 'Chia sẻ ẩn danh tùy chọn, reaction, bình luận và AI/admin moderation.', cta: 'Tham gia', route: '/forum', icon: Icons.group_outlined, color: Color(0xFF64748B), bg: Color(0xFFF1F5F9)),
+// ─── Local EventModel ────────────────────────────────────────────────────────
+
+class EventModel {
+  final String id;
+  final String title;
+  final String? description;
+  final String? eventType;
+  final String? location;
+  final DateTime? eventDate;
+  final String status;
+  final int? maxParticipants;
+
+  const EventModel({
+    required this.id,
+    required this.title,
+    this.description,
+    this.eventType,
+    this.location,
+    this.eventDate,
+    required this.status,
+    this.maxParticipants,
+  });
+
+  factory EventModel.fromJson(Map<String, dynamic> json) => EventModel(
+        id: json['_id']?.toString() ?? '',
+        title: json['title']?.toString() ?? '',
+        description: json['description']?.toString(),
+        eventType: json['eventType']?.toString(),
+        location: json['location']?.toString(),
+        eventDate: DateTime.tryParse(json['eventDate']?.toString() ?? ''),
+        status: json['status']?.toString() ?? 'upcoming',
+        maxParticipants: (json['maxParticipants'] as num?)?.toInt(),
+      );
+
+  Color get statusColor {
+    switch (status) {
+      case 'ongoing': return const Color(0xFF0F766E);
+      case 'completed': return const Color(0xFF9E9E9E);
+      default: return _LM.primary;
+    }
+  }
+
+  String get typeLabel {
+    switch (eventType) {
+      case 'workshop': return 'Workshop';
+      case 'talkshow': return 'Talkshow';
+      case 'webinar': return 'Webinar';
+      default: return eventType ?? 'Sự kiện';
+    }
+  }
+
+  IconData get typeIcon {
+    switch (eventType) {
+      case 'workshop': return Icons.handyman_outlined;
+      case 'talkshow': return Icons.mic_outlined;
+      case 'webinar': return Icons.video_call_outlined;
+      default: return Icons.event_outlined;
+    }
+  }
+}
+
+// ─── Luminous Modernist Palette (matches HTML) ─────────────────────────────
+class _LM {
+  static const Color primary = Color(0xFF630ED4);
+  static const Color primaryContainer = Color(0xFF7C3AED);
+  static const Color onPrimaryContainer = Color(0xFFEDE0FF);
+  static const Color surface = Color(0xFFF9F9FB);
+  static const Color surfaceContainerLowest = Color(0xFFFFFFFF);
+  static const Color surfaceContainerLow = Color(0xFFF3F3F5);
+  static const Color onSurface = Color(0xFF1A1C1D);
+  static const Color onSurfaceVariant = Color(0xFF4A4455);
+  static const Color outlineVariant = Color(0xFFCCC3D8);
+  static const Color secondaryFixed = Color(0xFFF0DBFF);
+  static const Color secondary = Color(0xFF8127CF);
+  static const Color tertiaryFixed = Color(0xFF71F8E4);
+  static const Color tertiary = Color(0xFF005950);
+}
+
+// ─── Mood Data ──────────────────────────────────────────────────────────────
+const _moodItems = [
+  _MoodItem(emoji: '😔', label: 'Sad'),
+  _MoodItem(emoji: '😐', label: 'Meh'),
+  _MoodItem(emoji: '😊', label: 'Good'),
+  _MoodItem(emoji: '🤩', label: 'Great'),
 ];
 
-const _moodBars = [42.0, 58.0, 70.0, 45.0, 82.0, 64.0, 76.0];
-const _weekDays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-const _moods = ['😊', '😌', '🙂', '🙏', '🌈'];
+// ─── Event images fallback by type ──────────────────────────────────────────
+String _eventImageForType(String? type) {
+  switch (type) {
+    case 'webinar': return 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=560&q=80';
+    case 'talkshow': return 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=560&q=80';
+    case 'workshop': return 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=560&q=80';
+    default: return 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=560&q=80';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HomeScreen
+// ─────────────────────────────────────────────────────────────────────────────
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -25,372 +117,77 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  int _navIndex = 0;
+  final _routes = ['/home', '/diary', '/ai-chat', '/events', '/forum'];
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
-    final firstName = user?.firstName ?? 'bạn';
+    final firstName = user?.firstName ?? 'Sarah';
 
-    return Scaffold(
-      backgroundColor: SoulColors.bgMain,
-      body: CustomScrollView(
-        slivers: [
-          // ── App Bar ────────────────────────────────────────────────────
-          SliverAppBar(
-            expandedHeight: 0,
-            floating: true,
-            snap: true,
-            backgroundColor: Colors.white,
-            elevation: 0,
-            title: Row(
-              children: [
-                Container(
-                  width: 32, height: 32,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFFA855F7)]),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.spa_outlined, color: Colors.white, size: 16),
-                ),
-                const SizedBox(width: 8),
-                const Text('SOUL', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: Color(0xFF7C3AED))),
-              ],
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined, color: Color(0xFF1E293B)),
-                onPressed: () {},
-              ),
-              GestureDetector(
-                onTap: () => context.push('/profile'),
-                child: Container(
-                  width: 36, height: 36,
-                  margin: const EdgeInsets.only(right: 16),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFFA855F7)]),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      firstName.isNotEmpty ? firstName[0].toUpperCase() : 'U',
-                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Hero card ───────────────────────────────────────────
-                _HeroCard(firstName: firstName),
-
-                // ── Mood selector ───────────────────────────────────────
-                _MoodSelector(),
-
-                // ── Mini chart ──────────────────────────────────────────
-                _MiniMoodChart(),
-
-                // ── Quick actions ───────────────────────────────────────
-                _QuickActionsSection(),
-
-                // ── Stats ───────────────────────────────────────────────
-                _StatsSection(),
-
-                // ── Daily motivation ────────────────────────────────────
-                _DailyMotivation(),
-
-                // ── AI chat invite ──────────────────────────────────────
-                _AiChatInvite(),
-
-                const SizedBox(height: 32),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Hero Card ─────────────────────────────────────────────────────────────────
-
-class _HeroCard extends StatelessWidget {
-  final String firstName;
-  const _HeroCard({required this.firstName});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: SoulColors.primaryShadow,
-      ),
-      padding: const EdgeInsets.all(22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.18),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '✦ Chào mừng trở lại, $firstName',
-              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
-            ),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Hôm nay bạn muốn chăm sóc tâm trí theo cách nào?',
-            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800, height: 1.35),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'SOUL luôn sẵn sàng lắng nghe và đồng hành cùng bạn.',
-            style: TextStyle(color: Color(0xBFFFFFFF), fontSize: 13, height: 1.5),
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => context.push('/ai-chat'),
-                  child: Container(
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'Trò chuyện với SOUL AI',
-                      style: TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.w800, fontSize: 13),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              GestureDetector(
-                onTap: () => context.push('/diary'),
-                child: Container(
-                  height: 44, width: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withOpacity(0.4)),
-                  ),
-                  child: const Icon(Icons.book_outlined, color: Colors.white, size: 20),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Mood Selector ─────────────────────────────────────────────────────────────
-
-class _MoodSelector extends StatefulWidget {
-  @override
-  State<_MoodSelector> createState() => _MoodSelectorState();
-}
-
-class _MoodSelectorState extends State<_MoodSelector> {
-  int? _selected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Bạn đang cảm thấy thế nào?',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1E293B))),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(_moods.length, (i) {
-              final selected = _selected == i;
-              return GestureDetector(
-                onTap: () => setState(() => _selected = i),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 52, height: 52,
-                  decoration: BoxDecoration(
-                    color: selected ? SoulColors.bgPurpleSoft : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: selected ? SoulColors.primary : SoulColors.borderLight,
-                      width: selected ? 2 : 1,
-                    ),
-                    boxShadow: selected ? SoulColors.subtleShadow : [],
-                  ),
-                  child: Center(child: Text(_moods[i], style: const TextStyle(fontSize: 24))),
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Mini Mood Chart ───────────────────────────────────────────────────────────
-
-class _MiniMoodChart extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: SoulColors.subtleShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Tâm trạng tuần này',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1E293B))),
-              GestureDetector(
-                onTap: () => context.push('/diary'),
-                child: const Text('Xem chi tiết →',
-                  style: TextStyle(fontSize: 12, color: SoulColors.primary, fontWeight: FontWeight.w600)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 80,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(_moodBars.length, (i) {
-                final barH = (_moodBars[i] / 100) * 72;
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    AnimatedContainer(
-                      duration: Duration(milliseconds: 300 + i * 60),
-                      width: 28,
-                      height: barH,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: i == 4
-                              ? [SoulColors.primary, SoulColors.primaryLight]
-                              : [const Color(0xFFC4B5FD), const Color(0xFFDDD6FE)],
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(_weekDays[i],
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: i == 4 ? FontWeight.w800 : FontWeight.w500,
-                        color: i == 4 ? SoulColors.primary : SoulColors.textFaint,
-                      )),
-                  ],
-                );
-              }),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Quick Actions ─────────────────────────────────────────────────────────────
-
-class _QuickActionsSection extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 24, 16, 14),
-          child: Text('Công cụ hỗ trợ của bạn',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1E293B))),
-        ),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 0.88,
-          ),
-          itemCount: _quickActions.length,
-          itemBuilder: (ctx, i) => _QuickActionCard(action: _quickActions[i]),
-        ),
-      ],
-    );
-  }
-}
-
-class _QuickActionCard extends StatelessWidget {
-  final _QuickAction action;
-  const _QuickActionCard({required this.action});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => context.push(action.route),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: SoulColors.subtleShadow,
-          border: Border.all(color: SoulColors.borderLight),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        backgroundColor: _LM.surface,
+        body: Stack(
           children: [
-            Container(
-              width: 46, height: 46,
-              decoration: BoxDecoration(
-                color: action.bg,
-                borderRadius: BorderRadius.circular(14),
+            // ── Scrollable Content ─────────────────────────────────────────
+            CustomScrollView(
+              slivers: [
+                // ── Sticky Header ──────────────────────────────────────────
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _StickyHeaderDelegate(firstName: firstName),
+                ),
+
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Welcome ──────────────────────────────────────
+                        _WelcomeSection(firstName: firstName),
+                        const SizedBox(height: 24),
+
+                        // ── Mood Tracker ──────────────────────────────────
+                        _MoodTrackerCard(),
+                        const SizedBox(height: 16),
+
+                        // ── AI Insight + Bento Grid ───────────────────────
+                        _BentoGrid(),
+                        const SizedBox(height: 24),
+
+                        // ── Upcoming Events ───────────────────────────────
+                        _UpcomingEvents(),
+                        const SizedBox(height: 100), // space for bottom nav
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // ── FAB ────────────────────────────────────────────────────────
+            Positioned(
+              right: 24,
+              bottom: 96,
+              child: _FabButton(),
+            ),
+
+            // ── Bottom Navigation ──────────────────────────────────────────
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: _BottomNav(
+                currentIndex: _navIndex,
+                onTap: (i) {
+                  setState(() => _navIndex = i);
+                  context.go(_routes[i]);
+                },
               ),
-              child: Icon(action.icon, color: action.color, size: 22),
             ),
-            const SizedBox(height: 12),
-            Text(action.title,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1E293B))),
-            const SizedBox(height: 4),
-            Expanded(
-              child: Text(action.desc,
-                style: const TextStyle(fontSize: 12, color: SoulColors.textMuted, height: 1.4),
-                maxLines: 3, overflow: TextOverflow.ellipsis),
-            ),
-            const SizedBox(height: 8),
-            Text('${action.cta} →',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: action.color)),
           ],
         ),
       ),
@@ -398,176 +195,715 @@ class _QuickActionCard extends StatelessWidget {
   }
 }
 
-// ── Stats Section ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Sticky Header Delegate
+// ─────────────────────────────────────────────────────────────────────────────
 
-class _StatsSection extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFF7F2FF), Color(0xFFECFDF5)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: SoulColors.borderLight),
-      ),
-      child: Row(
-        children: const [
-          _StatItem(value: '12', label: 'Nhật ký', icon: Icons.book_outlined, color: Color(0xFF7C3AED)),
-          _StatDivider(),
-          _StatItem(value: '85', label: 'Well-being', icon: Icons.favorite_outline, color: Color(0xFF0F766E)),
-          _StatDivider(),
-          _StatItem(value: '5', label: 'Ngày streak', icon: Icons.local_fire_department_outlined, color: Color(0xFFF97316)),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatItem extends StatelessWidget {
-  final String value;
-  final String label;
-  final IconData icon;
-  final Color color;
-  const _StatItem({required this.value, required this.label, required this.icon, required this.color});
+class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final String firstName;
+  const _StickyHeaderDelegate({required this.firstName});
 
   @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 4),
-          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: color)),
-          Text(label, style: const TextStyle(fontSize: 11, color: SoulColors.textMuted, fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatDivider extends StatelessWidget {
-  const _StatDivider();
+  double get minExtent => 64;
   @override
-  Widget build(BuildContext context) {
-    return Container(width: 1, height: 40, color: SoulColors.borderLight);
-  }
-}
+  double get maxExtent => 64;
 
-// ── Daily Motivation ──────────────────────────────────────────────────────────
-
-class _DailyMotivation extends StatelessWidget {
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: SoulColors.subtleShadow,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 46, height: 46,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF7ED),
-              borderRadius: BorderRadius.circular(14),
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          height: 64,
+          decoration: BoxDecoration(
+            color: _LM.surface.withOpacity(0.85),
+            border: const Border(
+              bottom: BorderSide(color: Color(0x20CCC3D8)),
             ),
-            child: const Icon(Icons.wb_sunny_outlined, color: Color(0xFFF97316), size: 24),
+            boxShadow: overlapsContent
+                ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 2))]
+                : null,
           ),
-          const SizedBox(width: 14),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Động lực hôm nay',
-                  style: TextStyle(fontSize: 12, color: SoulColors.textMuted, fontWeight: FontWeight.w500)),
-                SizedBox(height: 2),
-                Text('"Hãy bắt đầu bằng một hơi thở chậm."',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1E293B), height: 1.4)),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded, color: SoulColors.textFaint),
-        ],
-      ),
-    );
-  }
-}
-
-// ── AI Chat Invite ────────────────────────────────────────────────────────────
-
-class _AiChatInvite extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF7C3AED), Color(0xFF5B21B6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: SoulColors.primaryShadow,
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                width: 36, height: 36,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
+              // Brand
+              Row(
+                children: [
+                  const Icon(Icons.spa_rounded, color: _LM.primary, size: 26),
+                  const SizedBox(width: 8),
+                  Text(
+                    'SOUL',
+                    style: GoogleFonts.manrope(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: _LM.primary,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              const Text('SOUL AI', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text('Online', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+              // Actions
+              Row(
+                children: [
+                  _IconBtn(Icons.notifications_outlined, onTap: () {}),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => context.push('/profile'),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: _LM.onPrimaryContainer,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: _LM.outlineVariant),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        firstName.isNotEmpty ? firstName[0].toUpperCase() : 'U',
+                        style: GoogleFonts.manrope(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: _LM.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Text(
-              '"Mình ở đây để lắng nghe. Bạn muốn chia sẻ điều gì không?"',
-              style: TextStyle(color: Colors.white, fontSize: 13, height: 1.5, fontStyle: FontStyle.italic),
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(_StickyHeaderDelegate old) => old.firstName != firstName;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Welcome Section
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _WelcomeSection extends StatelessWidget {
+  final String firstName;
+  const _WelcomeSection({required this.firstName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Welcome back, $firstName',
+          style: GoogleFonts.manrope(
+            fontSize: 32,
+            fontWeight: FontWeight.w700,
+            color: _LM.onSurface,
+            letterSpacing: -0.01 * 32,
+            height: 1.25,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'How are you feeling today?',
+          style: GoogleFonts.manrope(
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            color: _LM.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mood Tracker Card
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _MoodTrackerCard extends StatefulWidget {
+  @override
+  State<_MoodTrackerCard> createState() => _MoodTrackerCardState();
+}
+
+class _MoodTrackerCardState extends State<_MoodTrackerCard> {
+  int _selectedMood = 2; // 'Good' selected by default
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _TonalCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'MOOD TRACKER',
+                style: GoogleFonts.manrope(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: _LM.onSurface,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              Text(
+                'Daily Goal 80%',
+                style: GoogleFonts.manrope(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: _LM.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Emoji buttons
+          Row(
+            children: List.generate(_moodItems.length, (i) {
+              final selected = _selectedMood == i;
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(right: i < _moodItems.length - 1 ? 8 : 0),
+                  child: GestureDetector(
+                    onTap: () => setState(() => _selectedMood = i),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: selected ? _LM.primary.withOpacity(0.07) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: selected ? _LM.primary : _LM.outlineVariant.withOpacity(0.5),
+                          width: selected ? 2 : 1,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(_moodItems[i].emoji, style: const TextStyle(fontSize: 24)),
+                          const SizedBox(height: 4),
+                          Text(
+                            _moodItems[i].label,
+                            style: GoogleFonts.manrope(
+                              fontSize: 12,
+                              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                              color: selected ? _LM.primary : _LM.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 16),
+
+          // Textarea + Save button
+          Stack(
+            children: [
+              Container(
+                height: 96,
+                decoration: BoxDecoration(
+                  color: _LM.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _LM.outlineVariant.withOpacity(0.5)),
+                ),
+                child: TextField(
+                  controller: _controller,
+                  maxLines: null,
+                  expands: true,
+                  textAlignVertical: TextAlignVertical.top,
+                  decoration: InputDecoration(
+                    hintText: 'Start writing your thoughts...',
+                    hintStyle: GoogleFonts.manrope(
+                      fontSize: 16,
+                      color: _LM.onSurfaceVariant.withOpacity(0.6),
+                    ),
+                    contentPadding: const EdgeInsets.fromLTRB(16, 12, 110, 12),
+                    border: InputBorder.none,
+                  ),
+                  style: GoogleFonts.manrope(fontSize: 16, color: _LM.onSurface),
+                ),
+              ),
+              Positioned(
+                right: 12,
+                bottom: 10,
+                child: ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _LM.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 2,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    shape: const StadiumBorder(),
+                    textStyle: GoogleFonts.manrope(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  child: const Text('Save Reflection'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bento Grid – AI Insight + Diary + Tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _BentoGrid extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // AI Insight – full width
+        _AiInsightCard(),
+        const SizedBox(height: 16),
+
+        // Diary + Tests side by side
+        Row(
+          children: [
+            Expanded(child: _BentoSquare(
+              icon: Icons.edit_note_rounded,
+              label: 'Diary',
+              iconBg: _LM.secondaryFixed,
+              iconColor: _LM.secondary,
+              onTap: () => context.push('/diary'),
+            )),
+            const SizedBox(width: 16),
+            Expanded(child: _BentoSquare(
+              icon: Icons.quiz_rounded,
+              label: 'Tests',
+              iconBg: _LM.tertiaryFixed,
+              iconColor: _LM.tertiary,
+              onTap: () => context.push('/emotional-test'),
+            )),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _AiInsightCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _LM.primaryContainer,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: _LM.primary.withOpacity(0.18), blurRadius: 16, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // Decorative circle
+          Positioned(
+            right: -16,
+            top: -16,
+            child: Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: _LM.onPrimaryContainer.withOpacity(0.10),
+                shape: BoxShape.circle,
+              ),
             ),
           ),
-          const SizedBox(height: 14),
-          GestureDetector(
-            onTap: () => context.push('/ai-chat'),
-            child: Container(
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.psychology_rounded, color: _LM.onPrimaryContainer, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'AI Insight',
+                        style: GoogleFonts.manrope(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: _LM.onPrimaryContainer,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Icon(Icons.auto_awesome, color: _LM.onPrimaryContainer, size: 16, fill: 0),
+                ],
               ),
-              alignment: Alignment.center,
-              child: const Text('Bắt đầu trò chuyện →',
-                style: TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.w800, fontSize: 14)),
+              const SizedBox(height: 12),
+              Text(
+                'Your "Calm" entries have increased by 20% since you started the Daily Gratitude habit. Keep it up!',
+                style: GoogleFonts.manrope(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                  color: _LM.onPrimaryContainer,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BentoSquare extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color iconBg;
+  final Color iconColor;
+  final VoidCallback onTap;
+
+  const _BentoSquare({
+    required this.icon,
+    required this.label,
+    required this.iconBg,
+    required this.iconColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: _TonalCard(
+        child: AspectRatio(
+          aspectRatio: 1,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: iconColor, size: 24),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                label,
+                style: GoogleFonts.manrope(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: _LM.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Upcoming Events – connected to backend
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _UpcomingEvents extends StatefulWidget {
+  @override
+  State<_UpcomingEvents> createState() => _UpcomingEventsState();
+}
+
+class _UpcomingEventsState extends State<_UpcomingEvents> {
+  List<EventModel> _events = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchEvents();
+  }
+
+  Future<void> _fetchEvents() async {
+    try {
+      final res = await dio.get(
+        ApiConfig.events,
+        queryParameters: {'status': 'upcoming', 'limit': 5},
+      );
+      final raw = (res.data['data'] ?? res.data) as List? ?? [];
+      if (!mounted) return;
+      setState(() {
+        _events = raw
+            .map((e) => EventModel.fromJson(e as Map<String, dynamic>))
+            .where((e) => e.status == 'upcoming' || e.status == 'ongoing')
+            .take(5)
+            .toList();
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Không tải được sự kiện';
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Upcoming Events',
+              style: GoogleFonts.manrope(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: _LM.onSurface,
+                letterSpacing: -0.01 * 24,
+              ),
+            ),
+            TextButton(
+              onPressed: () => context.push('/events'),
+              child: Text(
+                'See All',
+                style: GoogleFonts.manrope(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: _LM.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 230,
+          child: _loading
+              ? ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  clipBehavior: Clip.none,
+                  itemCount: 3,
+                  separatorBuilder: (_, __) => const SizedBox(width: 16),
+                  itemBuilder: (_, __) => _EventCardSkeleton(),
+                )
+              : _error != null || _events.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.event_busy_rounded, size: 40, color: _LM.outlineVariant),
+                          const SizedBox(height: 8),
+                          Text(
+                            _error ?? 'Chưa có sự kiện sắp tới',
+                            style: GoogleFonts.manrope(
+                              fontSize: 14,
+                              color: _LM.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      clipBehavior: Clip.none,
+                      itemCount: _events.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 16),
+                      itemBuilder: (context, i) => _EventCard(event: _events[i]),
+                    ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EventCard extends StatelessWidget {
+  final EventModel event;
+  const _EventCard({required this.event});
+
+  @override
+  Widget build(BuildContext context) {
+    final dateStr = event.eventDate != null
+        ? DateFormat('MMM dd').format(event.eventDate!).toUpperCase()
+        : '';
+    final isOnline = event.eventType == 'webinar';
+    final imageUrl = _eventImageForType(event.eventType);
+
+    return GestureDetector(
+      onTap: () => context.push('/events/${event.id}'),
+      child: Container(
+        width: 260,
+        decoration: BoxDecoration(
+          color: _LM.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 4)),
+          ],
+        ),
+        clipBehavior: Clip.hardEdge,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image
+            SizedBox(
+              height: 128,
+              width: double.infinity,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: _LM.onPrimaryContainer,
+                      child: Icon(event.typeIcon, color: Colors.white54, size: 40),
+                    ),
+                  ),
+                  // Type badge
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: event.statusColor.withOpacity(0.92),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        event.typeLabel,
+                        style: GoogleFonts.manrope(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (dateStr.isNotEmpty)
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            color: Colors.white.withOpacity(0.9),
+                            child: Text(
+                              dateStr,
+                              style: GoogleFonts.manrope(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: _LM.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            // Info
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.title,
+                    style: GoogleFonts.manrope(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _LM.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        isOnline ? Icons.videocam_outlined : Icons.location_on_outlined,
+                        size: 14,
+                        color: _LM.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          event.location ?? (isOnline ? 'Online' : 'TBA'),
+                          style: GoogleFonts.manrope(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: _LM.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Skeleton loading card ─────────────────────────────────────────────────────
+
+class _EventCardSkeleton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 260,
+      decoration: BoxDecoration(
+        color: _LM.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 16, offset: const Offset(0, 4)),
+        ],
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(height: 128, color: _LM.outlineVariant.withOpacity(0.25)),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(height: 14, width: 160, decoration: BoxDecoration(color: _LM.outlineVariant.withOpacity(0.3), borderRadius: BorderRadius.circular(4))),
+                const SizedBox(height: 8),
+                Container(height: 12, width: 100, decoration: BoxDecoration(color: _LM.outlineVariant.withOpacity(0.2), borderRadius: BorderRadius.circular(4))),
+              ],
             ),
           ),
         ],
@@ -576,24 +912,179 @@ class _AiChatInvite extends StatelessWidget {
   }
 }
 
-// ── Data Models ───────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// FAB
+// ─────────────────────────────────────────────────────────────────────────────
 
-class _QuickAction {
-  final String title;
-  final String desc;
-  final String cta;
-  final String route;
+class _FabButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/diary'),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: _LM.primary,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: _LM.primary.withOpacity(0.4),
+              blurRadius: 20,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bottom Navigation
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _BottomNav extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
+  const _BottomNav({required this.currentIndex, required this.onTap});
+
+  static const _items = [
+    _NavItem(icon: Icons.home_rounded, label: 'Home'),
+    _NavItem(icon: Icons.edit_note_rounded, label: 'Diary'),
+    _NavItem(icon: Icons.psychology_rounded, label: 'AI Guide'),
+    _NavItem(icon: Icons.event_rounded, label: 'Events'),
+    _NavItem(icon: Icons.group_rounded, label: 'Community'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          height: 80,
+          decoration: BoxDecoration(
+            color: _LM.surface.withOpacity(0.92),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            border: const Border(top: BorderSide(color: Color(0x15CCC3D8))),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -4)),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(_items.length, (i) {
+              final active = currentIndex == i;
+              return GestureDetector(
+                onTap: () => onTap(i),
+                behavior: HitTestBehavior.opaque,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: active
+                      ? BoxDecoration(
+                          color: _LM.onPrimaryContainer,
+                          borderRadius: BorderRadius.circular(999),
+                        )
+                      : null,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _items[i].icon,
+                        size: 22,
+                        color: active ? _LM.primaryContainer : _LM.onSurfaceVariant,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _items[i].label,
+                        style: GoogleFonts.manrope(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: active ? _LM.primaryContainer : _LM.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared Tonal Card Widget
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _TonalCard extends StatelessWidget {
+  final Widget child;
+  const _TonalCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _LM.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Small icon button
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _IconBtn extends StatelessWidget {
   final IconData icon;
-  final Color color;
-  final Color bg;
+  final VoidCallback onTap;
+  const _IconBtn(this.icon, {required this.onTap});
 
-  const _QuickAction({
-    required this.title,
-    required this.desc,
-    required this.cta,
-    required this.route,
-    required this.icon,
-    required this.color,
-    required this.bg,
-  });
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.transparent,
+        ),
+        child: Icon(icon, color: _LM.onSurface, size: 24),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Data Models
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _MoodItem {
+  final String emoji;
+  final String label;
+  const _MoodItem({required this.emoji, required this.label});
+}
+
+class _NavItem {
+  final IconData icon;
+  final String label;
+  const _NavItem({required this.icon, required this.label});
 }

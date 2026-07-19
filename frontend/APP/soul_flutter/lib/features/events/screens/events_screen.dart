@@ -122,7 +122,7 @@ class _EventsScreenState extends State<EventsScreen>
 
   Future<void> _loadMy() async {
     try {
-      final res = await dio.get(ApiConfig.userEvents);
+      final res = await dio.get('${ApiConfig.events}/me/registered');
       final data = (res.data['data'] ?? res.data) as List? ?? [];
       setState(() {
         _myEvents = data.map((e) {

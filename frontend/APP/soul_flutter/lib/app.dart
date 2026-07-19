@@ -66,11 +66,13 @@ class SoulApp extends ConsumerWidget {
         GoRoute(path: '/recovery', builder: (c, s) => const RecoveryScreen()),
         GoRoute(path: '/congrats', builder: (c, s) => const CongratsScreen()),
 
-        // Main app shell
+        // Home – standalone (has its own bottom nav)
+        GoRoute(path: '/home', builder: (c, s) => const HomeScreen()),
+
+        // Main app shell (forum only, others use full-screen)
         ShellRoute(
           builder: (context, state, child) => SoulScaffold(child: child),
           routes: [
-            GoRoute(path: '/home', builder: (c, s) => const HomeScreen()),
             GoRoute(path: '/forum', builder: (c, s) => const ForumScreen()),
           ],
         ),

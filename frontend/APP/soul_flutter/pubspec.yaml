@@ -39,6 +39,7 @@ dependencies:
 
   # JWT decode
   dart_jsonwebtoken: ^2.12.1
+  google_fonts: ^8.1.0
 
 dev_dependencies:
   flutter_test:
