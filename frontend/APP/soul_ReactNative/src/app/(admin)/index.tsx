@@ -449,10 +449,6 @@ export default function AdminDashboard() {
                     <Text style={styles.summaryCaption}>Review rate</Text>
                   </View>
                 </View>
-                <View style={styles.summaryDivider} />
-                <Text style={styles.summaryNote}>
-                  Dữ liệu lấy từ EventRegistration và EventRating, không dùng số liệu mô phỏng.
-                </Text>
               </LinearGradient>
             </View>
 
@@ -1160,6 +1156,7 @@ const styles = StyleSheet.create({
     padding: 24,
     borderWidth: 1,
     borderColor: "#E9D5FF",
+    justifyContent: "center",
     ...shadowSoft,
   },
 

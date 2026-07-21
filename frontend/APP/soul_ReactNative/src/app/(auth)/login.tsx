@@ -131,156 +131,164 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={s.root}
     >
-      <View style={[s.container, isWeb && s.containerWeb]}>
-        
-        {/* ── Brand Panel (left on web, top on mobile) ─────────────────── */}
-        <LinearGradient
-          colors={["#7C3AED", "#6D28D9", "#5B21B6"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[s.brandPanel, isWeb ? s.brandPanelWeb : s.brandPanelMobile]}
-        >
-          {/* Decorative circles */}
-          <View style={[s.blob, { top: -60, right: -60, width: 220, height: 220, borderRadius: 110 }]} />
-          <View style={[s.blob, { bottom: -40, left: -40, width: 180, height: 180, borderRadius: 90 }]} />
-          <View style={[s.blob, { top: "40%", right: -30, width: 120, height: 120, borderRadius: 60, opacity: 0.15 }]} />
-
-          <View style={s.brandContent}>
-            {/* Logo */}
-            <View style={s.logoRow}>
-              <MaterialCommunityIcons name="leaf" size={20} color="rgba(255,255,255,0.9)" />
-              <Text style={s.logoText}>SOUL</Text>
-            </View>
-
-            {/* Headline */}
-            <Text style={[s.headline, isWeb ? s.headlineWeb : s.headlineMobile]}>
-              Nurture your{"\n"}inner peace.
-            </Text>
-
-            <Text style={s.subHeadline}>
-              Join over 2 million users finding balance and mental clarity through science-backed wellness practices.
-            </Text>
-
-            {/* Stats */}
-            <View style={s.statsRow}>
-              <StatCard value="98%" label="STRESS REDUCTION" />
-              <StatCard value="2M+" label="HAPPY SOULS" />
-            </View>
-          </View>
-        </LinearGradient>
-
-        {/* ── Form Panel (right on web, bottom on mobile) ─────────────────── */}
-        <View style={[s.formPanel, isWeb ? s.formPanelWeb : s.formPanelMobile]}>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={s.formScroll}
-            keyboardShouldPersistTaps="handled"
+      <View style={s.outerWrapper}>
+        <View style={[s.container, isWeb && s.containerWeb]}>
+          
+          {/* ── Brand Panel (left on web, top on mobile) ─────────────────── */}
+          <LinearGradient
+            colors={["#7C3AED", "#6D28D9", "#5B21B6"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[s.brandPanel, isWeb ? s.brandPanelWeb : s.brandPanelMobile]}
           >
-            <Text style={s.formTitle}>Welcome Back</Text>
-            <Text style={s.formSubtitle}>Sign in to continue your wellness journey.</Text>
+            {/* Decorative circles */}
+            <View style={[s.blob, { top: -60, right: -60, width: 220, height: 220, borderRadius: 110 }]} />
+            <View style={[s.blob, { bottom: -40, left: -40, width: 180, height: 180, borderRadius: 90 }]} />
+            <View style={[s.blob, { top: "40%", right: -30, width: 120, height: 120, borderRadius: 60, opacity: 0.15 }]} />
 
-            {/* Server Error */}
-            {serverError ? (
-              <View style={s.errorBox}>
-                <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#DC2626" />
-                <Text style={s.errorBoxText}>{serverError}</Text>
+            <View style={s.brandContent}>
+              {/* Logo */}
+              <View style={s.logoRow}>
+                <MaterialCommunityIcons name="leaf" size={20} color="rgba(255,255,255,0.9)" />
+                <Text style={s.logoText}>SOUL</Text>
               </View>
-            ) : null}
 
-            {/* Email */}
-            <Text style={s.fieldLabel}>Email Address</Text>
-            <View style={[s.inputWrap, emailError ? s.inputWrapError : null]}>
-              <MaterialCommunityIcons name="email-outline" size={20} color={emailError ? colors.error : "#94A3B8"} style={s.inputIcon} />
-              <TextInput
-                placeholder="name@example.com"
-                placeholderTextColor="#B0BEC5"
-                style={s.input}
-                value={email}
-                onChangeText={handleEmailChange}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-            {emailError ? <Text style={s.fieldError}>{emailError}</Text> : null}
+              {/* Headline */}
+              <Text style={[s.headline, isWeb ? s.headlineWeb : s.headlineMobile]}>
+                Nurture your{"\n"}inner peace.
+              </Text>
 
-            {/* Password row header */}
-            <View style={s.passwordHeader}>
-              <Text style={s.fieldLabel}>Password</Text>
-              <TouchableOpacity onPress={() => router.push("/(auth)/forgot")}>
-                <Text style={s.forgotLink}>Forgot password?</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={[s.inputWrap, passwordError ? s.inputWrapError : null]}>
-              <MaterialCommunityIcons name="lock-outline" size={20} color={passwordError ? colors.error : "#94A3B8"} style={s.inputIcon} />
-              <TextInput
-                placeholder="••••••••"
-                placeholderTextColor="#B0BEC5"
-                secureTextEntry={secureText}
-                style={s.input}
-                value={password}
-                onChangeText={handlePasswordChange}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity onPress={() => setSecureText(!secureText)} style={s.eyeBtn}>
-                <MaterialCommunityIcons
-                  name={secureText ? "eye-off-outline" : "eye-outline"}
-                  size={20}
-                  color="#94A3B8"
-                />
-              </TouchableOpacity>
-            </View>
-            {passwordError ? <Text style={s.fieldError}>{passwordError}</Text> : null}
+              <Text style={s.subHeadline}>
+                Join over 2 million users finding balance and mental clarity through science-backed wellness practices.
+              </Text>
 
-            {/* Remember me */}
-            <TouchableOpacity style={s.checkRow} onPress={() => setRememberMe(!rememberMe)} activeOpacity={0.7}>
-              <View style={[s.checkbox, rememberMe && s.checkboxChecked]}>
-                {rememberMe && <MaterialCommunityIcons name="check" size={13} color="#FFF" />}
+              {/* Stats */}
+              <View style={s.statsRow}>
+                <StatCard value="98%" label="STRESS REDUCTION" />
+                <StatCard value="2M+" label="HAPPY SOULS" />
               </View>
-              <Text style={s.checkLabel}>Remember this device</Text>
-            </TouchableOpacity>
-
-            {/* Sign In button */}
-            <TouchableOpacity onPress={handleLogin} disabled={loading} style={s.signInBtn} activeOpacity={0.85}>
-              <LinearGradient
-                colors={["#7C3AED", "#6D28D9"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={s.signInGradient}
-              >
-                {loading
-                  ? <ActivityIndicator color="#FFF" size="small" />
-                  : <Text style={s.signInText}>Sign In</Text>
-                }
-              </LinearGradient>
-            </TouchableOpacity>
-
-            {/* Divider */}
-            <View style={s.dividerRow}>
-              <View style={s.dividerLine} />
-              <Text style={s.dividerText}>OR CONTINUE WITH</Text>
-              <View style={s.dividerLine} />
             </View>
+          </LinearGradient>
 
-            {/* Social buttons */}
-            <View style={s.socialRow}>
-              <TouchableOpacity style={s.socialBtn} onPress={handleGoogleLogin} activeOpacity={0.8}>
-                <MaterialCommunityIcons name="google" size={20} color="#EA4335" />
-                <Text style={s.socialBtnText}>Google</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.socialBtn} activeOpacity={0.8}>
-                <MaterialCommunityIcons name="facebook" size={20} color="#1877F2" />
-                <Text style={s.socialBtnText}>Facebook</Text>
-              </TouchableOpacity>
-            </View>
+          {/* ── Form Panel (right on web, bottom on mobile) ─────────────────── */}
+          <View style={[s.formPanel, isWeb ? s.formPanelWeb : s.formPanelMobile]}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={s.formScroll}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={s.headerGroup}>
+                <Text style={s.formTitle}>Welcome Back</Text>
+                <Text style={s.formSubtitle}>Sign in to continue your wellness journey.</Text>
+              </View>
 
-            {/* Register link */}
-            <View style={s.bottomLink}>
-              <Text style={s.bottomLinkText}>New to SOUL? </Text>
-              <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
-                <Text style={s.bottomLinkAction}>Create an account</Text>
+              {/* Server Error */}
+              {serverError ? (
+                <View style={s.errorBox}>
+                  <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#DC2626" />
+                  <Text style={s.errorBoxText}>{serverError}</Text>
+                </View>
+              ) : null}
+
+              {/* Email */}
+              <View style={s.fieldBlock}>
+                <Text style={s.fieldLabel}>Email Address</Text>
+                <View style={[s.inputWrap, emailError ? s.inputWrapError : null]}>
+                  <MaterialCommunityIcons name="email-outline" size={18} color={emailError ? colors.error : "#94A3B8"} style={s.inputIcon} />
+                  <TextInput
+                    placeholder="name@example.com"
+                    placeholderTextColor="#B0BEC5"
+                    style={s.input}
+                    value={email}
+                    onChangeText={handleEmailChange}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+                {emailError ? <Text style={s.fieldError}>{emailError}</Text> : null}
+              </View>
+
+              {/* Password */}
+              <View style={s.fieldBlock}>
+                <View style={s.passwordHeader}>
+                  <Text style={s.fieldLabel}>Password</Text>
+                  <TouchableOpacity onPress={() => router.push("/(auth)/forgot")}>
+                    <Text style={s.forgotLink}>Forgot password?</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={[s.inputWrap, passwordError ? s.inputWrapError : null]}>
+                  <MaterialCommunityIcons name="lock-outline" size={18} color={passwordError ? colors.error : "#94A3B8"} style={s.inputIcon} />
+                  <TextInput
+                    placeholder="••••••••"
+                    placeholderTextColor="#B0BEC5"
+                    secureTextEntry={secureText}
+                    style={s.input}
+                    value={password}
+                    onChangeText={handlePasswordChange}
+                    autoCapitalize="none"
+                  />
+                  <TouchableOpacity onPress={() => setSecureText(!secureText)} style={s.eyeBtn}>
+                    <MaterialCommunityIcons
+                      name={secureText ? "eye-off-outline" : "eye-outline"}
+                      size={18}
+                      color="#94A3B8"
+                    />
+                  </TouchableOpacity>
+                </View>
+                {passwordError ? <Text style={s.fieldError}>{passwordError}</Text> : null}
+              </View>
+
+              {/* Remember me */}
+              <TouchableOpacity style={s.checkRow} onPress={() => setRememberMe(!rememberMe)} activeOpacity={0.7}>
+                <View style={[s.checkbox, rememberMe && s.checkboxChecked]}>
+                  {rememberMe && <MaterialCommunityIcons name="check" size={13} color="#FFF" />}
+                </View>
+                <Text style={s.checkLabel}>Remember this device</Text>
               </TouchableOpacity>
-            </View>
-          </ScrollView>
+
+              {/* Sign In button */}
+              <TouchableOpacity onPress={handleLogin} disabled={loading} style={s.signInBtn} activeOpacity={0.85}>
+                <LinearGradient
+                  colors={["#7C3AED", "#6D28D9"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={s.signInGradient}
+                >
+                  {loading
+                    ? <ActivityIndicator color="#FFF" size="small" />
+                    : <Text style={s.signInText}>Sign In</Text>
+                  }
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Divider */}
+              <View style={s.dividerRow}>
+                <View style={s.dividerLine} />
+                <Text style={s.dividerText}>OR CONTINUE WITH</Text>
+                <View style={s.dividerLine} />
+              </View>
+
+              {/* Social buttons */}
+              <View style={s.socialRow}>
+                <TouchableOpacity style={s.socialBtn} onPress={handleGoogleLogin} activeOpacity={0.8}>
+                  <MaterialCommunityIcons name="google" size={18} color="#EA4335" />
+                  <Text style={s.socialBtnText}>Google</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.socialBtn} activeOpacity={0.8}>
+                  <MaterialCommunityIcons name="facebook" size={18} color="#1877F2" />
+                  <Text style={s.socialBtnText}>Facebook</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Register link */}
+              <View style={s.bottomLink}>
+                <Text style={s.bottomLinkText}>New to SOUL? </Text>
+                <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
+                  <Text style={s.bottomLinkAction}>Create an account</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
         </View>
       </View>
 
@@ -316,31 +324,35 @@ export default function LoginScreen() {
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────────
+// ── STYLESHEET ─────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: "#F5F3FF",
   },
+  outerWrapper: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+  },
   container: {
     flex: 1,
     flexDirection: "column",
+    width: "100%",
   },
   containerWeb: {
     flexDirection: "row",
-    maxWidth: 1000,
-    alignSelf: "center",
-    width: "100%",
-    flex: 1,
-    marginVertical: "auto" as any,
-    borderRadius: 28,
+    maxWidth: 960,
+    width: "90%",
+    minHeight: 640,
+    borderRadius: 24,
     overflow: "hidden",
+    alignSelf: "center",
     ...Platform.select({
       web: {
-        boxShadow: "0 32px 80px rgba(124, 58, 237, 0.2)",
-        margin: 32,
-        flex: undefined,
-        alignSelf: "center",
+        boxShadow: "0 24px 64px rgba(124, 58, 237, 0.15)",
+        marginVertical: 40,
       },
     }),
   },
@@ -349,14 +361,14 @@ const s = StyleSheet.create({
   brandPanel: {
     position: "relative",
     overflow: "hidden",
-    justifyContent: "flex-end",
+    justifyContent: "center",
   },
   brandPanelWeb: {
-    width: "50%",
-    minHeight: 580,
+    width: "48%",
+    minHeight: 640,
   },
   brandPanelMobile: {
-    minHeight: 240,
+    minHeight: 260,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
   },
@@ -366,14 +378,14 @@ const s = StyleSheet.create({
   },
   brandContent: {
     padding: 36,
-    paddingBottom: 40,
     zIndex: 2,
+    justifyContent: "center",
   },
   logoRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 32,
+    marginBottom: 24,
   },
   logoText: {
     color: "#FFF",
@@ -387,21 +399,21 @@ const s = StyleSheet.create({
     fontWeight: "800",
     lineHeight: 44,
     letterSpacing: -0.5,
-    marginBottom: 16,
+    marginBottom: 14,
     fontFamily: displayFont,
   },
   headlineWeb: {
-    fontSize: 36,
+    fontSize: 34,
   },
   headlineMobile: {
     fontSize: 26,
     lineHeight: 34,
   },
   subHeadline: {
-    color: "rgba(255,255,255,0.75)",
+    color: "rgba(255,255,255,0.8)",
     fontSize: 14,
     lineHeight: 22,
-    marginBottom: 32,
+    marginBottom: 28,
     fontFamily: webFont,
   },
   statsRow: {
@@ -411,7 +423,7 @@ const s = StyleSheet.create({
   statCard: {
     backgroundColor: "rgba(255,255,255,0.15)",
     borderRadius: 16,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 14,
     flex: 1,
     borderWidth: 1,
@@ -424,7 +436,7 @@ const s = StyleSheet.create({
     fontFamily: displayFont,
   },
   statLabel: {
-    color: "rgba(255,255,255,0.65)",
+    color: "rgba(255,255,255,0.7)",
     fontSize: 10,
     fontWeight: "700",
     letterSpacing: 1,
@@ -438,8 +450,8 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   formPanelWeb: {
-    flex: 1,
-    minHeight: 580,
+    width: "52%",
+    minHeight: 640,
   },
   formPanelMobile: {
     flex: 1,
@@ -448,22 +460,23 @@ const s = StyleSheet.create({
     marginTop: -20,
   },
   formScroll: {
-    padding: 40,
-    paddingTop: 44,
+    padding: 36,
     flexGrow: 1,
     justifyContent: "center",
   },
+  headerGroup: {
+    marginBottom: 24,
+  },
   formTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "800",
     color: "#1E293B",
     fontFamily: displayFont,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   formSubtitle: {
     fontSize: 14,
     color: "#64748B",
-    marginBottom: 28,
     fontFamily: webFont,
   },
 
@@ -489,19 +502,21 @@ const s = StyleSheet.create({
   },
 
   // Fields
+  fieldBlock: {
+    marginBottom: 16,
+  },
   fieldLabel: {
     fontSize: 13,
     fontWeight: "600",
     color: "#374151",
-    marginBottom: 8,
+    marginBottom: 6,
     fontFamily: webFont,
   },
   fieldError: {
     fontSize: 12,
     color: colors.error,
-    marginTop: -4,
-    marginBottom: 10,
-    marginLeft: 4,
+    marginTop: 4,
+    marginLeft: 2,
     fontFamily: webFont,
   },
   inputWrap: {
@@ -510,10 +525,9 @@ const s = StyleSheet.create({
     backgroundColor: "#F8F7FF",
     borderWidth: 1.5,
     borderColor: "#E9E2FF",
-    borderRadius: 14,
-    height: 52,
+    borderRadius: 12,
+    height: 48,
     paddingHorizontal: 14,
-    marginBottom: 16,
   },
   inputWrapError: {
     borderColor: colors.error,
@@ -524,13 +538,14 @@ const s = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: "#1E293B",
     fontFamily: webFont,
     height: "100%",
   },
   eyeBtn: {
     padding: 4,
+    marginLeft: 6,
   },
 
   // Password header row
@@ -538,7 +553,7 @@ const s = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   forgotLink: {
     fontSize: 13,
@@ -552,48 +567,50 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginBottom: 24,
+    marginTop: 4,
+    marginBottom: 20,
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 5,
     borderWidth: 1.5,
     borderColor: "#CBD5E1",
     backgroundColor: "#FFF",
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
   checkboxChecked: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
   checkLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#64748B",
     fontFamily: webFont,
   },
 
   // Sign in button
   signInBtn: {
-    borderRadius: 14,
+    borderRadius: 12,
     overflow: "hidden",
-    marginBottom: 24,
+    marginBottom: 20,
     ...Platform.select({
-      web: { boxShadow: "0 6px 24px rgba(124, 58, 237, 0.4)" },
-      ios: { shadowColor: colors.primary, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
-      android: { elevation: 6 },
-      default: { elevation: 6 },
+      web: { boxShadow: "0 6px 20px rgba(124, 58, 237, 0.35)" },
+      ios: { shadowColor: colors.primary, shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+      android: { elevation: 4 },
+      default: { elevation: 4 },
     }),
   },
   signInGradient: {
-    height: 52,
+    height: 48,
     alignItems: "center",
     justifyContent: "center",
   },
   signInText: {
     color: "#FFF",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
     fontFamily: webFont,
     letterSpacing: 0.3,
@@ -603,7 +620,7 @@ const s = StyleSheet.create({
   dividerRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 16,
   },
   dividerLine: {
     flex: 1,
@@ -623,7 +640,7 @@ const s = StyleSheet.create({
   socialRow: {
     flexDirection: "row",
     gap: 12,
-    marginBottom: 28,
+    marginBottom: 24,
   },
   socialBtn: {
     flex: 1,
@@ -631,14 +648,14 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    height: 48,
+    height: 44,
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: "#E2E8F0",
     backgroundColor: "#FFF",
     ...Platform.select({
-      web: { boxShadow: "0 2px 8px rgba(0,0,0,0.06)" },
-      ios: { shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
+      web: { boxShadow: "0 2px 8px rgba(0,0,0,0.04)" },
+      ios: { shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
       android: { elevation: 2 },
       default: { elevation: 2 },
     }),
