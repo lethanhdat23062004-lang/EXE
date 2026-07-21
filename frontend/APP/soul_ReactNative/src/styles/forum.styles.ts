@@ -35,8 +35,8 @@ export const forumStyles = StyleSheet.create({
     borderColor: colors.borderPrimary,
     ...Platform.select({
       web: {
-        maxWidth: 1120,
-        width: "100%",
+        maxWidth: 960,
+        width: "90%",
         alignSelf: "center",
         marginTop: 22,
         paddingTop: 26,
@@ -186,8 +186,8 @@ export const forumStyles = StyleSheet.create({
     paddingBottom: 130,
     ...Platform.select({
       web: {
-        maxWidth: 860,
-        width: "100%",
+        maxWidth: 960,
+        width: "90%",
         alignSelf: "center",
         paddingHorizontal: 0,
         paddingTop: 24,
@@ -768,8 +768,6 @@ export const forumStyles = StyleSheet.create({
   bottomSwitcher: {
     position: "absolute",
     bottom: 22,
-    left: 16,
-    right: 16,
     height: 68,
     backgroundColor: colors.surface,
     borderRadius: 999,
@@ -780,10 +778,32 @@ export const forumStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     ...Platform.select({
-      ios: { shadowColor: colors.primary, shadowOpacity: 0.16, shadowRadius: 16, shadowOffset: { width: 0, height: 6 } },
-      android: { elevation: 12 },
-      web: { boxShadow: "0 8px 32px rgba(124, 58, 237, 0.16)" },
-      default: { elevation: 12 },
+      ios: {
+        left: 16,
+        right: 16,
+        shadowColor: colors.primary,
+        shadowOpacity: 0.16,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 6 },
+      },
+      android: {
+        left: 16,
+        right: 16,
+        elevation: 12,
+      },
+      web: {
+        maxWidth: 960,
+        width: "90%",
+        alignSelf: "center",
+        left: "auto",
+        right: "auto",
+        boxShadow: "0 8px 32px rgba(124, 58, 237, 0.16)",
+      },
+      default: {
+        left: 16,
+        right: 16,
+        elevation: 12,
+      },
     }),
   },
 
