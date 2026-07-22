@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Platform,
   SafeAreaView,
@@ -107,6 +107,13 @@ export default function HomeScreen() {
   const [showRating, setShowRating] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const { user } = useAuthStore();
+
+  useEffect(() => {
+    if (user && user.role === "admin") {
+      router.replace("/(admin)");
+    }
+  }, [user]);
+
   const firstName = user?.fullName?.split(" ")?.slice(-1)?.[0] || "bạn";
   const scrollRef = useRef<ScrollView>(null);
   const ratingOffsetRef = useRef<number>(0);

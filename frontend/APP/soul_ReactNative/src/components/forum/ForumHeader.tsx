@@ -1,26 +1,15 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { forumStyles as s } from "@/styles/forum.styles";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "@/constants/colors";
 
 type Props = {
-  search: string;
-  setSearch: (value: string) => void;
-  filter: string;
-  setFilter: (value: string) => void;
-  filters: string[];
   onCreatePress: () => void;
   onReportsPress?: () => void;
   onBackPress?: () => void;
 };
 
 export function ForumHeader({
-  search,
-  setSearch,
-  filter,
-  setFilter,
-  filters,
   onCreatePress,
   onReportsPress,
   onBackPress,
@@ -30,86 +19,91 @@ export function ForumHeader({
       colors={["#7C3AED", "#6366F1", "#14B8A6"]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={[s.header, { borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }]}
+      style={styles.headerShell}
     >
-      {onBackPress ? (
-        <Pressable
-          style={[s.backButton, { backgroundColor: "rgba(255,255,255,0.2)", borderColor: "rgba(255,255,255,0.3)" }]}
-          onPress={onBackPress}
-        >
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
-        </Pressable>
-      ) : null}
+      <View style={styles.headerContent}>
+        {onBackPress ? (
+          <Pressable
+            style={styles.iconButton}
+            onPress={onBackPress}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={22} color="#FFFFFF" />
+          </Pressable>
+        ) : null}
 
-      <View style={s.headerTop}>
-        <View style={s.headerTitleWrap}>
-          <Text style={[s.title, { color: "#FFFFFF" }]}>Healing Forum</Text>
-          <Text style={[s.subtitle, { color: "rgba(255,255,255,0.82)" }]}>
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.headerTitle}>Healing Forum</Text>
+          <Text style={styles.headerSubtitle}>
             A safe space to share, support and grow together 🌿
           </Text>
         </View>
 
-        <View style={s.headerActions}>
-          <Pressable
-            style={[s.bellButton, { backgroundColor: "rgba(255,255,255,0.18)", borderColor: "rgba(255,255,255,0.3)" }]}
-            onPress={onReportsPress}
-          >
-            <MaterialCommunityIcons name="flag-outline" size={24} color="#FFFFFF" />
-          </Pressable>
+        <View style={styles.headerActions}>
+          {onReportsPress && (
+            <Pressable
+              style={styles.iconButton}
+              onPress={onReportsPress}
+            >
+              <MaterialCommunityIcons name="flag-outline" size={20} color="#FFFFFF" />
+            </Pressable>
+          )}
 
           <Pressable
-            style={[s.plusButton, { backgroundColor: "rgba(255,255,255,0.22)", borderColor: "rgba(255,255,255,0.35)" }]}
+            style={styles.iconButton}
             onPress={onCreatePress}
           >
-            <MaterialCommunityIcons name="plus" size={28} color="#FFFFFF" />
+            <MaterialCommunityIcons name="plus" size={22} color="#FFFFFF" />
           </Pressable>
         </View>
       </View>
-
-      {/* Search box — white on gradient */}
-      <View style={[s.searchBox, { backgroundColor: "rgba(255,255,255,0.18)", borderColor: "rgba(255,255,255,0.3)" }]}>
-        <MaterialCommunityIcons name="magnify" size={22} color="rgba(255,255,255,0.8)" />
-        <TextInput
-          style={[s.searchInput, { color: "#FFFFFF" }]}
-          placeholder="Search stories, feelings, hashtags..."
-          placeholderTextColor="rgba(255,255,255,0.55)"
-          value={search}
-          onChangeText={setSearch}
-        />
-      </View>
-
-      {/* Filter chips — glassmorphism on gradient */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={s.filterRow}
-      >
-        {filters.map((item) => {
-          const active = item === filter;
-          return (
-            <Pressable
-              key={item}
-              style={[
-                s.filterChip,
-                {
-                  backgroundColor: active ? "#FFFFFF" : "rgba(255,255,255,0.18)",
-                  borderColor: active ? "#FFFFFF" : "rgba(255,255,255,0.35)",
-                },
-              ]}
-              onPress={() => setFilter(item)}
-            >
-              <Text
-                style={[
-                  s.filterText,
-                  { color: active ? colors.primary : "rgba(255,255,255,0.9)" },
-                ]}
-              >
-                {item === "all" ? "✦ All" : `#${item}`}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
     </LinearGradient>
   );
 }
+
+const styles = StyleSheet.create({
+  headerShell: {
+    paddingTop: 52,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 20,
+    width: "100%",
+    maxWidth: 1280,
+    alignSelf: "center",
+  },
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTextWrap: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    fontFamily: "Georgia",
+  },
+  headerSubtitle: {
+    marginTop: 3,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.8)",
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+});

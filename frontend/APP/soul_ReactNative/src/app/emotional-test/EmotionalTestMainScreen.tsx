@@ -12,7 +12,9 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
+import { colors } from "@/constants/colors";
 import { TestType } from "../../api/emotionalTestApi";
 import TestOptionCard from "../../components/emotional-test/TestOptionCard";
 
@@ -42,47 +44,61 @@ export default function EmotionalTestMainScreen({ navigation }: Props) {
   return (
     <LinearGradient colors={["#F8F5FF", "#FFFFFF", "#F0FDFA"]} style={styles.container}>
       <SafeAreaView style={styles.safe}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
+        <LinearGradient
+          colors={["#7C3AED", "#6366F1", "#14B8A6"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerShell}
         >
-          <View style={styles.header}>
+          <View style={styles.headerContent}>
             <TouchableOpacity
-              style={styles.backHomeButton}
+              style={styles.iconButton}
               onPress={() => router.replace("/(tabs)" as any)}
               activeOpacity={0.85}
             >
-              <Text style={styles.backHomeText}>‹</Text>
+              <MaterialCommunityIcons name="arrow-left" size={22} color="#FFFFFF" />
             </TouchableOpacity>
 
-            <View style={styles.headerTextBox}>
-              <Text style={styles.hello}>Mental Clarity Center</Text>
-              <Text style={styles.subHello}>
+            <View style={styles.headerTextWrap}>
+              <Text style={styles.headerTitle}>Mental Clarity Center</Text>
+              <Text style={styles.headerSubtitle} numberOfLines={1}>
                 Bài test ngắn giúp bạn hiểu rõ hơn trạng thái cảm xúc hiện tại.
               </Text>
             </View>
 
-            <TouchableOpacity style={styles.bell} activeOpacity={0.85}>
-              <Text style={styles.bellText}>🔔</Text>
+            <TouchableOpacity style={styles.iconButton} activeOpacity={0.85}>
+              <MaterialCommunityIcons name="bell-outline" size={22} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
+        </LinearGradient>
 
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           <View style={[styles.heroGrid, !isWebDesktop && styles.heroGridMobile]}>
+            {/* Restyled as a solid purple hero card */}
             <View style={styles.heroCopy}>
-              <Text style={styles.heroEyebrow}>KHOA HỌC TÂM LÝ</Text>
-              <Text style={styles.heroTitle}>
+              <View style={styles.heroBadge}>
+                <MaterialCommunityIcons name="star-four-points" size={12} color="#FFFFFF" />
+                <Text style={styles.heroBadgeText}>KHOA HỌC TÂM LÝ</Text>
+              </View>
+              
+              <Text style={[styles.heroTitle, { color: "#FFFFFF" }]}>
                 Hiểu cảm xúc của bạn bằng các bài test chuẩn hóa.
               </Text>
-              <Text style={styles.heroDescription}>
+              
+              <Text style={[styles.heroDescription, { color: "#E8FFFA" }]}>
                 Làm bài nhanh, xem kết quả trực quan và nhận gợi ý phù hợp từ SOUL AI.
               </Text>
 
               <TouchableOpacity
-                style={styles.heroButton}
+                style={[styles.heroButton, { backgroundColor: "#FFFFFF", flexDirection: "row", alignItems: "center", gap: 8 }]}
                 onPress={() => goToAssessment("WHO5")}
                 activeOpacity={0.88}
               >
-                <Text style={styles.heroButtonText}>Bắt đầu bài gợi ý</Text>
+                <Text style={[styles.heroButtonText, { color: colors.dark }]}>Bắt đầu bài gợi ý</Text>
+                <MaterialCommunityIcons name="arrow-right" size={16} color={colors.dark} />
               </TouchableOpacity>
             </View>
 
@@ -129,7 +145,7 @@ export default function EmotionalTestMainScreen({ navigation }: Props) {
             <View style={styles.featureRight}>
               <Text style={styles.featureIllustration}>💜</Text>
               <TouchableOpacity
-                style={styles.featureButton}
+                style={[styles.featureButton, { backgroundColor: "#7C3AED" }]}
                 onPress={() => goToAssessment("WHO5")}
                 activeOpacity={0.85}
               >
@@ -142,7 +158,7 @@ export default function EmotionalTestMainScreen({ navigation }: Props) {
             <Text style={styles.sectionTitle}>All Assessments</Text>
 
             <View style={styles.searchBox}>
-              <Text style={styles.searchIcon}>⌕</Text>
+              <MaterialCommunityIcons name="magnify" size={20} color="#64748B" style={{ marginRight: 6 }} />
               <TextInput
                 placeholder="Search test, topic, keyword..."
                 placeholderTextColor="#9CA3AF"
@@ -151,7 +167,7 @@ export default function EmotionalTestMainScreen({ navigation }: Props) {
             </View>
 
             <TouchableOpacity style={styles.filterButton} activeOpacity={0.85}>
-              <Text style={styles.filterText}>☷</Text>
+              <MaterialCommunityIcons name="filter-variant" size={22} color="#0F766E" />
             </TouchableOpacity>
           </View>
 
@@ -216,63 +232,55 @@ const styles = StyleSheet.create({
   },
   safe: {
     flex: 1,
+    backgroundColor: "#FFFFFF",
   },
   scrollContent: {
     width: "100%",
-    maxWidth: 1180,
+    maxWidth: 1280,
     alignSelf: "center",
-    paddingHorizontal: 24,
-    paddingTop: Platform.OS === "web" ? 28 : 10,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
   },
-  header: {
+  headerShell: {
+    paddingTop: 52,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    marginBottom: 22,
+    gap: 12,
+    paddingHorizontal: 20,
+    width: "100%",
+    maxWidth: 1280,
+    alignSelf: "center",
   },
-  backHomeButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#FFFFFF",
-    justifyContent: "center",
-    alignItems: "center",
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
     borderWidth: 1,
-    borderColor: "#EDE9FE",
+    borderColor: "rgba(255, 255, 255, 0.25)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  backHomeText: {
-    fontSize: 34,
-    lineHeight: 36,
-    color: "#7C3AED",
-    fontWeight: "900",
-  },
-  headerTextBox: {
+  headerTextWrap: {
     flex: 1,
   },
-  hello: {
-    fontSize: Platform.OS === "web" ? 30 : 22,
+  headerTitle: {
+    fontSize: 26,
     fontWeight: "900",
-    color: "#20123A",
-    letterSpacing: -0.5,
+    color: "#FFFFFF",
+    fontFamily: "Georgia",
   },
-  subHello: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: 4,
-    lineHeight: 20,
-  },
-  bell: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#FFFFFF",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#EDE9FE",
-  },
-  bellText: {
-    fontSize: 18,
+  headerSubtitle: {
+    marginTop: 3,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.8)",
   },
   heroGrid: {
     minHeight: 286,
@@ -293,47 +301,56 @@ const styles = StyleSheet.create({
   },
   heroCopy: {
     flex: 1.35,
-    justifyContent: "center",
+    backgroundColor: "#7C3AED",
+    borderRadius: 24,
+    padding: 24,
+    justifyContent: "space-between",
   },
-  heroEyebrow: {
-    color: "#7C3AED",
-    fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: 1,
-    marginBottom: 12,
+  heroBadge: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.16)",
+  },
+  heroBadgeText: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+    fontSize: 10,
   },
   heroTitle: {
-    color: "#1E1538",
-    fontSize: Platform.OS === "web" ? 42 : 28,
-    lineHeight: Platform.OS === "web" ? 50 : 34,
+    color: "#FFFFFF",
+    fontSize: Platform.OS === "web" ? 36 : 24,
+    lineHeight: Platform.OS === "web" ? 44 : 30,
     fontWeight: "900",
-    letterSpacing: -1,
+    letterSpacing: -0.5,
+    marginTop: 12,
     maxWidth: 620,
   },
   heroDescription: {
-    color: "#6B7280",
-    fontSize: 15,
-    lineHeight: 24,
-    marginTop: 14,
+    color: "#E8FFFA",
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 10,
     maxWidth: 560,
   },
   heroButton: {
-    marginTop: 24,
-    height: 48,
     alignSelf: "flex-start",
-    paddingHorizontal: 24,
-    borderRadius: 999,
-    backgroundColor: "#7C3AED",
+    minHeight: 40,
+    marginTop: 16,
+    paddingHorizontal: 15,
+    borderRadius: 13,
+    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    ...Platform.select({
-      web: { boxShadow: "0 12px 28px rgba(124, 58, 237, 0.28)" },
-      android: { elevation: 4 },
-    }),
+    gap: 8,
   },
   heroButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
+    color: colors.dark,
+    fontSize: 13,
     fontWeight: "900",
   },
   checkInCard: {
@@ -500,19 +517,14 @@ const styles = StyleSheet.create({
   searchBox: {
     minWidth: Platform.OS === "web" ? 320 : 0,
     flex: Platform.OS === "web" ? 0 : 1,
-    height: 42,
-    borderRadius: 21,
+    height: 44,
+    borderRadius: 16,
     backgroundColor: "#FFFFFF",
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: "#EDE9FE",
-  },
-  searchIcon: {
-    color: "#7C3AED",
-    fontSize: 16,
-    marginRight: 6,
   },
   searchInput: {
     flex: 1,
@@ -523,7 +535,7 @@ const styles = StyleSheet.create({
   filterButton: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 12,
     backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",

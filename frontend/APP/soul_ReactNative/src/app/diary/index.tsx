@@ -27,6 +27,7 @@ import {
   DiaryMood,
 } from "@/api/diaryApi";
 
+import { colors } from "@/constants/colors";
 import { diaryStyles as s } from "@/styles/diary.styles";
 
 type MoodOption = {
@@ -431,64 +432,31 @@ export default function DiaryScreen() {
 
   return (
     <View style={s.page}>
-    <LinearGradient
+      <LinearGradient
         colors={["#7C3AED", "#6366F1", "#14B8A6"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[s.header]}
+        style={s.headerShell}
       >
-        <View style={s.headerTop}>
-          <Pressable style={[s.backButton, { backgroundColor: "rgba(255,255,255,0.2)", borderColor: "rgba(255,255,255,0.3)" }]} onPress={() => router.replace("/(tabs)" as any)}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
+        <View style={s.headerContent}>
+          <Pressable
+            style={s.iconButton}
+            onPress={() => router.replace("/(tabs)" as any)}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={22} color="#FFFFFF" />
           </Pressable>
 
-          <Pressable style={s.addButton} onPress={openCreateModal}>
-            <MaterialCommunityIcons name="plus" size={26} color="#FFFFFF" />
-          </Pressable>
-        </View>
-
-        <Text style={[s.title, { color: "#FFFFFF" }]}>Emotional Diary</Text>
-        <Text style={[s.subtitle, { color: "rgba(255,255,255,0.85)" }]}>
-          Write your feelings privately and let SOUL help you understand your mood.
-        </Text>
-
-        <View style={[s.todayCard, { borderColor: "rgba(255,255,255,0.35)", backgroundColor: "rgba(255,255,255,0.18)" }]}>
-          <View>
-            <Text style={[s.todayLabel, { color: "rgba(255,255,255,0.75)" }]}>Today check-in</Text>
-            <Text style={[s.todayTitle, { color: "#FFFFFF" }]}>How is your heart feeling?</Text>
+          <View style={s.headerTextWrap}>
+            <Text style={s.headerTitle}>Emotional Diary</Text>
+            <Text style={s.headerSubtitle} numberOfLines={1}>
+              Write your feelings privately & let SOUL help
+            </Text>
           </View>
 
-          <Text style={s.todayEmoji}>🌿</Text>
+          <Pressable style={s.iconButton} onPress={openCreateModal}>
+            <MaterialCommunityIcons name="plus" size={22} color="#FFFFFF" />
+          </Pressable>
         </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.filterRow}
-        >
-          {filters.map((item) => {
-            const active = item === filter;
-            const info = getMoodInfo(item);
-
-            return (
-              <Pressable
-                key={item}
-                style={[
-                  s.filterChip,
-                  {
-                    backgroundColor: active ? "#FFFFFF" : "rgba(255,255,255,0.18)",
-                    borderColor: active ? "#FFFFFF" : "rgba(255,255,255,0.35)",
-                  },
-                ]}
-                onPress={() => setFilter(item)}
-              >
-                <Text style={[s.filterText, { color: active ? "#7C3AED" : "rgba(255,255,255,0.9)" }]}>
-                  {item === "all" ? "✦ All" : `${info.emoji} ${info.label}`}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
       </LinearGradient>
 
       <FlatList
@@ -500,6 +468,63 @@ export default function DiaryScreen() {
         columnWrapperStyle={isWebDesktop ? s.webColumnWrapper : undefined}
         contentContainerStyle={[s.list, isWebDesktop && s.webList]}
         showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View style={{ paddingBottom: 8 }}>
+            {/* Standardized Purple Hero Card */}
+            <View style={s.heroCard}>
+              <View style={{ flex: 1, justifyContent: "space-between" }}>
+                <View style={s.heroBadge}>
+                  <MaterialCommunityIcons name="heart-pulse" size={15} color="#FFFFFF" />
+                  <Text style={s.heroBadgeText}>Today check-in</Text>
+                </View>
+                <Text style={s.heroTitle}>How is your heart feeling?</Text>
+                <Text style={s.heroText}>
+                  Write your feelings privately and let SOUL help you understand your mood.
+                </Text>
+                <Pressable
+                  style={s.heroButton}
+                  onPress={openCreateModal}
+                >
+                  <Text style={s.heroButtonText}>Write Diary</Text>
+                  <MaterialCommunityIcons name="arrow-right" size={18} color={colors.dark} />
+                </Pressable>
+              </View>
+              <Text style={{ fontSize: 64, position: "absolute", right: 24, bottom: 24, opacity: 0.2 }}>🌿</Text>
+            </View>
+
+            {/* Standardized Filter Chips */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={s.stdFilterRow}
+            >
+              {filters.map((item) => {
+                const active = item === filter;
+                const info = getMoodInfo(item);
+
+                return (
+                  <Pressable
+                    key={item}
+                    style={[
+                      s.stdFilterButton,
+                      active && s.stdActiveFilter,
+                    ]}
+                    onPress={() => setFilter(item)}
+                  >
+                    <Text
+                      style={[
+                        s.stdFilterText,
+                        active && s.stdActiveFilterText,
+                      ]}
+                    >
+                      {item === "all" ? "✦ All" : `${info.emoji} ${info.label}`}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }

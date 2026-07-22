@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Image,
   Platform,
@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { colors } from "@/constants/colors";
+import { useAuthStore } from "@/store";
 
 // ── COLOR PALETTE TOKENS (Matching Project Theme) ──────────────────────────
 const PRIMARY = colors.primary || "#7C3AED";
@@ -43,6 +44,19 @@ export default function LandingPage() {
 
   const [activeTourTab, setActiveTourTab] = useState<number>(0);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+
+  const user = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
+
+  useEffect(() => {
+    if (token && user) {
+      if (user.role === "admin") {
+        router.replace("/(admin)");
+      } else {
+        router.replace("/(tabs)");
+      }
+    }
+  }, [user, token]);
 
   const scrollTo = (y: number) => {
     scrollRef.current?.scrollTo({ y, animated: true });

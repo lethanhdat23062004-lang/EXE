@@ -8,8 +8,11 @@ import {
   Pressable,
   RefreshControl,
   Text,
+  TextInput,
   View,
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { colors } from "@/constants/colors";
 import { useAuthStore } from "@/store";
 
 import {
@@ -549,11 +552,6 @@ export default function ForumScreen() {
   return (
     <View style={s.page}>
       <ForumHeader
-        search={search}
-        setSearch={setSearch}
-        filter={filter}
-        setFilter={setFilter}
-        filters={filters}
         onCreatePress={openCreateModal}
         onReportsPress={openMyReports}
         onBackPress={() => router.replace("/(tabs)" as any)}
@@ -591,6 +589,68 @@ export default function ForumScreen() {
         )}
         contentContainerStyle={s.list}
         showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View style={{ paddingBottom: 8 }}>
+            {/* Standardized Purple Hero Card */}
+            <View style={s.heroCard}>
+              <View style={s.heroBadge}>
+                <MaterialCommunityIcons name="star-four-points" size={15} color="#FFFFFF" />
+                <Text style={s.heroBadgeText}>SOUL Forum</Text>
+              </View>
+              <Text style={s.heroTitle}>Connect & Heal</Text>
+              <Text style={s.heroText}>
+                Share your stories, offer support to others, and grow in a safe, mindful community.
+              </Text>
+              <Pressable
+                style={s.heroButton}
+                onPress={openCreateModal}
+              >
+                <Text style={s.heroButtonText}>Write a story</Text>
+                <MaterialCommunityIcons name="arrow-right" size={18} color={colors.dark} />
+              </Pressable>
+            </View>
+
+            {/* Standardized Search Box */}
+            <View style={s.stdSearchBox}>
+              <MaterialCommunityIcons name="magnify" size={20} color="#64748B" />
+              <TextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Search stories, feelings, hashtags..."
+                placeholderTextColor="#94A3B8"
+                style={s.stdSearchInput}
+              />
+              {search.length > 0 && (
+                <Pressable onPress={() => setSearch("")}>
+                  <MaterialCommunityIcons name="close-circle" size={18} color="#94A3B8" />
+                </Pressable>
+              )}
+            </View>
+
+            {/* Standardized Filter Row */}
+            <View style={s.stdFilterRow}>
+              {filters.map((item) => {
+                const active = filter === item;
+                return (
+                  <Pressable
+                    key={item}
+                    style={[s.stdFilterButton, active && s.stdActiveFilter]}
+                    onPress={() => setFilter(item)}
+                  >
+                    <Text
+                      style={[
+                        s.stdFilterText,
+                        active && s.stdActiveFilterText,
+                      ]}
+                    >
+                      {item === "all" ? "✦ All" : `#${item}`}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        }
         ListEmptyComponent={<EmptyForum mode={mode} />}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />

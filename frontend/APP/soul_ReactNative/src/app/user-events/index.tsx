@@ -12,6 +12,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { colors } from "@/constants/colors";
@@ -259,28 +260,35 @@ export default function UserEventListScreen() {
 
   return (
     <SafeAreaView style={screenStyles.safeArea}>
-      <View style={screenStyles.header}>
-        <TouchableOpacity
-          style={screenStyles.iconButton}
-          onPress={() => router.replace("/(tabs)")}
-        >
-          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.dark} />
-        </TouchableOpacity>
+      <LinearGradient
+        colors={["#7C3AED", "#6366F1", "#14B8A6"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={screenStyles.headerShell}
+      >
+        <View style={screenStyles.headerContent}>
+          <TouchableOpacity
+            style={screenStyles.iconButton}
+            onPress={() => router.replace("/(tabs)")}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
 
-        <View style={screenStyles.headerTextWrap}>
-          <Text style={screenStyles.headerTitle}>Events</Text>
-          <Text style={screenStyles.headerSubtitle}>
-            Emotional wellness activities
-          </Text>
+          <View style={screenStyles.headerTextWrap}>
+            <Text style={screenStyles.headerTitle}>Events</Text>
+            <Text style={screenStyles.headerSubtitle}>
+              Emotional wellness activities
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={screenStyles.iconButton}
+            onPress={() => router.push("/user-events/registered")}
+          >
+            <MaterialCommunityIcons name="bookmark-check-outline" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          style={screenStyles.headerIcon}
-          onPress={() => router.push("/user-events/registered")}
-        >
-          <MaterialCommunityIcons name="bookmark-check-outline" size={24} color="#0F766E" />
-        </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       <FlatList
         data={filteredEvents}
@@ -407,47 +415,45 @@ const screenStyles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
-  header: {
+  headerShell: {
+    paddingTop: 52,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerContent: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    paddingBottom: 14,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5F3EF",
+    paddingHorizontal: 20,
+    width: "100%",
+    maxWidth: 1280,
+    alignSelf: "center",
   },
   iconButton: {
-    width: 42,
-    height: 42,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.25)",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 12,
-    backgroundColor: "#F2FFFB",
   },
   headerTextWrap: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: "900",
-    color: colors.dark,
+    color: "#FFFFFF",
     fontFamily: "Georgia",
   },
   headerSubtitle: {
     marginTop: 3,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
-    color: "#70869E",
-  },
-  headerIcon: {
-    width: 42,
-    height: 42,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-    backgroundColor: "#E5FBF4",
+    color: "rgba(255, 255, 255, 0.8)",
   },
   listContent: {
     padding: 16,
@@ -455,9 +461,9 @@ const screenStyles = StyleSheet.create({
   },
   webListContent: {
     width: "100%",
-    maxWidth: 1180,
+    maxWidth: 1280,
     alignSelf: "center",
-    paddingHorizontal: 28,
+    paddingHorizontal: 20,
     paddingTop: 22,
     paddingBottom: 64,
   },
